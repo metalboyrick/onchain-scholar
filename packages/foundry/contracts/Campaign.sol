@@ -7,38 +7,14 @@ import "forge-std/console.sol";
 // Use openzeppelin to inherit battle-tested implementations (ERC20, ERC721, etc)
 // import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./lib/CampaignMetadataLib.sol";
+
 /**
  * A smart contract that facilitates crowdfunded scholarship campaigns;
  * @author metalboyrick
  */
 contract Campaign {
-    enum Status {
-        Idle,
-        Running,
-        Granted,
-        Refunded
-    }
-
-    // for MVP we just use gpa for criteria
-    struct Criteria {
-        uint minGPA;
-        bool passOrFail;
-    }
-
-    // need this struct to refund and know allocation per goal
-    struct BackersAndAllocs {
-        address backerAddress;
-        uint256 valueStaked;
-    }
-
-    struct Goal {
-        bytes32 name;
-        uint256 target;
-        uint256 totalValue;
-        Criteria criteria;
-        Status status;
-        BackersAndAllocs[] backersAndValues;
-    }
+    using CampaignMetadataLib for CampaignMetadataLib.Goal;
 
     // state variables for our campaign contracts
     bytes32 public name;
@@ -47,7 +23,7 @@ contract Campaign {
     address public recipientAddress;
     address public parentAddress;
 
-    Goal[] public goals;
+    CampaignMetadataLib.Goal[] public goals;
     bytes32[] public goalsAttestationUIDs;
     uint256[] public goalBalances;
 
@@ -62,7 +38,7 @@ contract Campaign {
         address _institutionAddress,
         address _recipientAddress,
         address _parentAddress,
-        Goal[] memory _goals
+        CampaignMetadataLib.Goal[] memory _goals
     ) {
         // fill in fixed data
         name = _name;
