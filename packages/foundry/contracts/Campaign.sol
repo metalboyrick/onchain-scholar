@@ -42,6 +42,7 @@ contract Campaign {
 
     // state variables for our campaign contracts
     bytes32 public name;
+    uint256 public id;
     address public institutionAddress;
     address public recipientAddress;
     address public parentAddress;
@@ -57,6 +58,7 @@ contract Campaign {
     // Check packages/foundry/deploy/Deploy.s.sol
     constructor(
         bytes32 _name,
+        uint256 _id,
         address _institutionAddress,
         address _recipientAddress,
         address _parentAddress,
@@ -64,6 +66,7 @@ contract Campaign {
     ) {
         // fill in fixed data
         name = _name;
+        id = _id;
         institutionAddress = _institutionAddress;
         recipientAddress = _recipientAddress;
         parentAddress = _parentAddress;
