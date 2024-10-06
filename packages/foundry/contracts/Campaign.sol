@@ -126,7 +126,7 @@ contract Campaign {
         // call refund on latest campaign
     }
 
-    function getCampaignDetails() public {
+    function getCampaignDetails() public view {
         // return all necessary variables
     }
 }
