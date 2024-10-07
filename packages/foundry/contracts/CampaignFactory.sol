@@ -9,13 +9,15 @@ contract CampaignFactory {
 
     Campaign[] campaigns;
     uint256 idCounter = 0;
+    mapping(address => Campaign[]) recipentAddressToCampaignMap;
+    mapping(address => Campaign[]) institutionAddressToCampaignMap;
 
     function createCampaign(
         bytes32 _name,
         address _institutionAddress,
         address _recipientAddress,
         CampaignMetadataLib.Goal[] memory _goals
-    ) public returns (uint256) {
+    ) public returns (address) {
         idCounter++;
         Campaign newCampaign = new Campaign(
             _name,
@@ -26,6 +28,22 @@ contract CampaignFactory {
             _goals
         );
         campaigns.push(newCampaign);
-        return idCounter;
+
+        recipentAddressToCampaignMap[_recipientAddress].push(newCampaign);
+        institutionAddressToCampaignMap[_institutionAddress].push(newCampaign);
+
+        return address(newCampaign);
+    }
+
+    function getCampaignAddressesFromRecipientAddress(
+        address _recipientAddress
+    ) public view returns (Campaign[] memory) {
+        return recipentAddressToCampaignMap[_recipientAddress];
+    }
+
+    function getCampaignAddressFromInstitutionAddress(
+        address _institutionAddress
+    ) public view returns (Campaign[] memory) {
+        return institutionAddressToCampaignMap[_institutionAddress];
     }
 }
