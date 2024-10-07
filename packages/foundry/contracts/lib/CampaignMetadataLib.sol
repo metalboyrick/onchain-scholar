@@ -28,5 +28,7 @@ library CampaignMetadataLib {
         Criteria criteria;
         Status status;
         BackersAndAllocs[] backersAndValues;
+        uint256 sendToRecipient;
+        uint256 sendToInstitution;
     }
 }
