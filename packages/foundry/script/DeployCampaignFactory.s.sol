@@ -7,9 +7,8 @@ import "./DeployHelpers.s.sol";
 contract DeployCampaignFactory is ScaffoldETHDeploy {
     // use `deployer` from `ScaffoldETHDeploy`
     // only deplloy CampaignFactory
-    function run() external ScaffoldEthDeployerRunner {
+    function run(address erc20Address) external ScaffoldEthDeployerRunner {
         address easAddress = vm.envAddress("EAS_CONTRACT_ADDRESS");
-        address erc20Address = vm.envAddress("ERC20_CONTRACT_ADDRESS");
 
         // use known eas and the erc20 address on base sepolia
         CampaignFactory yourContract = new CampaignFactory(
