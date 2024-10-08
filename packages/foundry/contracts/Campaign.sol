@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 // Useful for debugging. Remove when deploying to a live network.
-import "forge-std/console.sol";
+// import "forge-std/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IEAS.sol";
