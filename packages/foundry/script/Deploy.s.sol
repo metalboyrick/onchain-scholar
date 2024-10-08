@@ -11,6 +11,12 @@ contract DeployScript is ScaffoldETHDeploy {
 
         // todo: disable if already exists
         MockERC20 mockErc20 = deployMockERC20("Mock IDRX", "IDRX", 18);
+        console.logString(
+            string.concat(
+                "Mock IDRX deployed at: ",
+                vm.toString(address(mockErc20))
+            )
+        );
 
         // deploy campaign factory
         DeployCampaignFactory deployCampaignFactory = new DeployCampaignFactory();

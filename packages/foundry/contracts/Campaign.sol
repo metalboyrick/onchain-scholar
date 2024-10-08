@@ -60,19 +60,21 @@ contract Campaign {
         institutionAddress = _institutionAddress;
         recipientAddress = _recipientAddress;
         parentAddress = _parentAddress;
-        goals = _goals;
+
+        // set admission attestation to empty
+        admissionAttestation = "";
+        isAdmitted = false;
 
         // set erc20 and eas address
         erc20 = IERC20(_erc20Address);
         eas = IEAS(_easAddress);
 
+        // copy goals
+        for (uint128 i = 0; i < _goals.length; i++) goals.push(_goals[i]);
+
         // create empty array
         goalsAttestationUIDs = new bytes32[](_goals.length);
         goalBalances = new uint256[](_goals.length);
-
-        // set admission attestation to empty
-        admissionAttestation = "";
-        isAdmitted = false;
     }
 
     modifier isValidGoalAddress(uint256 _goalIndex) {
