@@ -12,6 +12,14 @@ contract CampaignFactory {
     mapping(address => Campaign[]) recipentAddressToCampaignMap;
     mapping(address => Campaign[]) institutionAddressToCampaignMap;
 
+    address public easAddress;
+    address public erc20Address;
+
+    constructor(address _easAddress, address _erc20Address) {
+        easAddress = _easAddress;
+        erc20Address = _erc20Address;
+    }
+
     function createCampaign(
         bytes32 _name,
         address _institutionAddress,
@@ -25,7 +33,9 @@ contract CampaignFactory {
             _institutionAddress,
             _recipientAddress,
             address(this),
-            _goals
+            _goals,
+            easAddress,
+            erc20Address
         );
         campaigns.push(newCampaign);
 

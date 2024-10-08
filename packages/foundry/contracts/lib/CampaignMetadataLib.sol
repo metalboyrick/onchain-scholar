@@ -15,20 +15,13 @@ library CampaignMetadataLib {
         bool passOrFail;
     }
 
-    // need this struct to refund and know allocation per goal
-    struct BackersAndAllocs {
-        address backerAddress;
-        uint256 valueStaked;
-    }
-
     struct Goal {
         bytes32 name;
         uint256 target;
-        uint256 totalValue;
         Criteria criteria;
         Status status;
-        BackersAndAllocs[] backersAndValues;
         uint256 sendToRecipient;
         uint256 sendToInstitution;
+        address[] backers;
     }
 }
