@@ -8,6 +8,8 @@ import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 contract DeployScript is ScaffoldETHDeploy {
     function run() external {
         // deploy fake idrx since they dont exists currently
+
+        // todo: disable if already exists
         MockERC20 mockErc20 = deployMockERC20("Mock IDRX", "IDRX", 18);
 
         // deploy campaign factory
