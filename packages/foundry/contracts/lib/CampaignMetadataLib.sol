@@ -11,7 +11,7 @@ library CampaignMetadataLib {
 
     // for MVP we just use gpa for criteria
     struct Criteria {
-        uint minGPA;
+        uint256 minGPA;
         bool passOrFail;
     }
 
