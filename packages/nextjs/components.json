@@ -1,0 +1,14 @@
+{
+  "style": "default",
+  "rsc": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "./styles/globals.css",
+    "baseColor": "slate",
+    "cssVariables": false
+  },
+  "aliases": {
+    "components": "~~/components/onchain-scholar",
+    "utils": "~~/utils/onchain-scholar"
+  }
+}

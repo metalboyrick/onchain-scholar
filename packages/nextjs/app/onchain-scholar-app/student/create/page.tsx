@@ -1,8 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Label, Select } from "@headlessui/react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { Button } from "~~/components/onchain-scholar/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~~/components/onchain-scholar/ui/card";
+import { Input } from "~~/components/onchain-scholar/ui/input";
+import { Label } from "~~/components/onchain-scholar/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~~/components/onchain-scholar/ui/select";
 
 type Milestone = {
   semester: number;
@@ -42,114 +53,107 @@ export default function CreateCampaign() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="card bg-base-100 shadow-xl w-full max-w-2xl mx-auto">
-        <div className="card-body flex flex-col gap-6">
-          <div>
-            <div className="card-title mb-2">Create Your Scholarship Campaign</div>
-            <div className="text-sm text-base-300">Fill in the details to start your fundraising journey</div>
-          </div>
-
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Create Your Scholarship Campaign</CardTitle>
+          <CardDescription>Fill in the details to start your fundraising journey</CardDescription>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <Field className="flex flex-col space-y-2">
-                <Label htmlFor="name" className="font-bold">
-                  Full Name
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
                 <Input
-                  className="input input-bordered"
                   id="name"
                   placeholder="Enter your full name"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required
                 />
-              </Field>
-              <Field className="flex flex-col space-y-2">
-                <Label htmlFor="institution" className="font-bold">
-                  Institution / University
-                </Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="institution">Institution / University</Label>
                 <Input
-                  className="input input-bordered"
                   id="institution"
                   placeholder="Enter your institution or university name"
                   value={institution}
                   onChange={e => setInstitution(e.target.value)}
                   required
                 />
-              </Field>
-              <Field className="flex flex-col space-y-2">
-                <Label htmlFor="walletAddress" className="font-bold">
-                  Institution Wallet Address
-                </Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="walletAddress">Institution Wallet Address</Label>
                 <Input
-                  className="input input-bordered"
                   id="walletAddress"
                   placeholder="Enter the institution's wallet address"
                   value={walletAddress}
                   onChange={e => setWalletAddress(e.target.value)}
                   required
                 />
-              </Field>
-              <Field className="flex flex-col space-y-2">
-                <Label className="font-bold">Milestones</Label>
+              </div>
+              <div className="space-y-2">
+                <Label>Milestones</Label>
                 {milestones.map((milestone, index) => (
-                  <div key={index} className="card card-bordered p-4 mt-2">
+                  <Card key={index} className="p-4 mt-2">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-medium">Semester {milestone.semester}</h4>
                       {index > 0 && (
-                        <Button className="btn btn-ghost" type="button" onClick={() => removeMilestone(index)}>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeMilestone(index)}>
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Remove milestone</span>
                         </Button>
                       )}
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field className="flex flex-col space-y-2">
-                        <Label htmlFor={`gpa-${index}`} className="text-sm">
-                          GPA Requirement
-                        </Label>
+                      <div className="space-y-2">
+                        <Label htmlFor={`gpa-${index}`}>GPA Requirement</Label>
                         <Select
                           value={milestone.gpaRequirement}
-                          className="select select-bordered"
-                          onChange={(e: any) => updateMilestone(index, "gpaRequirement", e.target.value)}
+                          onValueChange={value => updateMilestone(index, "gpaRequirement", value)}
                         >
-                          <option value="2.0">2.0</option>
-                          <option value="2.5">2.5</option>
-                          <option value="3.0">3.0</option>
-                          <option value="3.5">3.5</option>
-                          <option value="4.0">4.0</option>
-                          <option value="P/F">Pass/Fail</option>
+                          <SelectTrigger id={`gpa-${index}`}>
+                            <SelectValue placeholder="Select GPA or P/F" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="2.0">2.0</SelectItem>
+                            <SelectItem value="2.5">2.5</SelectItem>
+                            <SelectItem value="3.0">3.0</SelectItem>
+                            <SelectItem value="3.5">3.5</SelectItem>
+                            <SelectItem value="4.0">4.0</SelectItem>
+                            <SelectItem value="P/F">Pass/Fail</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </Field>
-                      <Field className="flex flex-col space-y-2">
-                        <Label htmlFor={`funds-${index}`} className="text-sm">
-                          Expected Funds (IDRX)
-                        </Label>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`funds-${index}`}>Expected Funds</Label>
                         <Input
                           id={`funds-${index}`}
                           type="number"
-                          className="input input-bordered"
                           placeholder="Enter amount"
                           value={milestone.expectedFunds}
                           onChange={e => updateMilestone(index, "expectedFunds", e.target.value)}
                           required
                         />
-                      </Field>
+                      </div>
                     </div>
-                  </div>
+                  </Card>
                 ))}
-                <Button type="button" onClick={addMilestone} className="btn btn-outline mt-2">
-                  <Plus />
+                <Button type="button" variant="outline" onClick={addMilestone} className="mt-2">
                   Add Milestone
                 </Button>
-              </Field>
+              </div>
             </div>
-            <Button type="submit" className="btn btn-primary w-full mt-6">
+            <Button type="submit" className="w-full mt-6">
               Create Campaign
             </Button>
           </form>
-        </div>
-      </div>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <p className="text-sm text-gray-500">
+            By creating a campaign, you agree to our Terms of Service and Privacy Policy.
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
