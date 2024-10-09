@@ -14,6 +14,8 @@
     "vercel:yolo": "vercel --build-env NEXT_PUBLIC_IGNORE_BUILD_ERROR=true"
   },
   "dependencies": {
+    "@dynamic-labs/ethereum": "^3.3.0",
+    "@dynamic-labs/sdk-react-core": "^3.3.0",
     "@headlessui/react": "latest",
     "@heroicons/react": "~2.1.5",
     "@rainbow-me/rainbowkit": "2.1.6",
