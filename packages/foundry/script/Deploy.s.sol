@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import "./DeployHelpers.s.sol";
 import {DeployCampaignFactory} from "./DeployCampaignFactory.s.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {DeployMockIDRX} from "./DeployMockIDRX.sol";
 
 contract DeployScript is ScaffoldETHDeploy {
     address erc20Address;
@@ -14,14 +14,8 @@ contract DeployScript is ScaffoldETHDeploy {
 
         // todo: disable if already exists
         if (erc20Address == address(0)) {
-            MockERC20 mockErc20 = deployMockERC20("Mock IDRX", "IDRX", 18);
-            erc20Address = address(mockErc20);
-            console.logString(
-                string.concat(
-                    "Mock IDRX deployed at: ",
-                    vm.toString(address(mockErc20))
-                )
-            );
+            DeployMockIDRX deployMockIDRX = new DeployMockIDRX();
+            erc20Address = deployMockIDRX.run();
         } else {
             console.logString(
                 string.concat(

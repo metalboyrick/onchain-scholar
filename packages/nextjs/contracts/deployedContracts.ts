@@ -176,6 +176,177 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
   },
+  84532: {
+    CampaignFactory: {
+      address: "0x86628f7434b7d8057673b231cee5596bb67576cb",
+      abi: [
+        {
+          type: "constructor",
+          inputs: [
+            {
+              name: "_easAddress",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_erc20Address",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "createCampaign",
+          inputs: [
+            {
+              name: "_name",
+              type: "bytes32",
+              internalType: "bytes32",
+            },
+            {
+              name: "_institutionAddress",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_recipientAddress",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_goals",
+              type: "tuple[]",
+              internalType: "struct CampaignMetadataLib.Goal[]",
+              components: [
+                {
+                  name: "name",
+                  type: "bytes32",
+                  internalType: "bytes32",
+                },
+                {
+                  name: "target",
+                  type: "uint256",
+                  internalType: "uint256",
+                },
+                {
+                  name: "criteria",
+                  type: "tuple",
+                  internalType: "struct CampaignMetadataLib.Criteria",
+                  components: [
+                    {
+                      name: "minGPA",
+                      type: "uint256",
+                      internalType: "uint256",
+                    },
+                    {
+                      name: "passOrFail",
+                      type: "bool",
+                      internalType: "bool",
+                    },
+                  ],
+                },
+                {
+                  name: "status",
+                  type: "uint8",
+                  internalType: "enum CampaignMetadataLib.Status",
+                },
+                {
+                  name: "sendToRecipient",
+                  type: "uint256",
+                  internalType: "uint256",
+                },
+                {
+                  name: "sendToInstitution",
+                  type: "uint256",
+                  internalType: "uint256",
+                },
+                {
+                  name: "backers",
+                  type: "address[]",
+                  internalType: "address[]",
+                },
+              ],
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "easAddress",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "erc20Address",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getCampaignAddressFromInstitutionAddress",
+          inputs: [
+            {
+              name: "_institutionAddress",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "contract Campaign[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getCampaignAddressesFromRecipientAddress",
+          inputs: [
+            {
+              name: "_recipientAddress",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "contract Campaign[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+      ],
+      inheritedFunctions: {},
+    },
+  },
 } as const;
 
 export default deployedContracts satisfies GenericContractsDeclaration;
