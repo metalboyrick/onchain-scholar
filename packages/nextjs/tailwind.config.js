@@ -6,7 +6,7 @@ module.exports = {
   darkMode: ["selector", "[data-theme='dark']"],
   // DaisyUI theme colors
   daisyui: {
-    themes: ["emerald"],
+    themes: ["bumblebee"],
   },
   theme: {
     extend: {
