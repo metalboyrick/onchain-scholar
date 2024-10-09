@@ -84,7 +84,7 @@ export default function StudentDashboard() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Campaigns</h1>
         <Button asChild>
-          <Link href="/create-campaign">
+          <Link href="/onchain-scholar-app/student/create">
             <Plus className="mr-2 h-4 w-4" /> Create New Campaign
           </Link>
         </Button>

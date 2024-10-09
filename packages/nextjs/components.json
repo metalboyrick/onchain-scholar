@@ -4,7 +4,7 @@
   "tailwind": {
     "config": "tailwind.config.js",
     "css": "./styles/globals.css",
-    "baseColor": "slate",
+    "baseColor": "indigo",
     "cssVariables": false
   },
   "aliases": {

@@ -1,16 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "~~/components/onchain-scholar/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~~/components/onchain-scholar/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import { Input } from "~~/components/onchain-scholar/ui/input";
 import { Label } from "~~/components/onchain-scholar/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~~/components/onchain-scholar/ui/select";
@@ -98,9 +91,15 @@ export default function CreateCampaign() {
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-medium">Semester {milestone.semester}</h4>
                       {index > 0 && (
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeMilestone(index)}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="px-1 py-1"
+                          onClick={() => removeMilestone(index)}
+                        >
                           <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Remove milestone</span>
+                          <span className="sr-only">Remove</span>
                         </Button>
                       )}
                     </div>
@@ -138,7 +137,8 @@ export default function CreateCampaign() {
                     </div>
                   </Card>
                 ))}
-                <Button type="button" variant="outline" onClick={addMilestone} className="mt-2">
+                <Button type="button" variant="secondary" onClick={addMilestone} className="mt-2">
+                  <Plus />
                   Add Milestone
                 </Button>
               </div>
@@ -148,11 +148,6 @@ export default function CreateCampaign() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <p className="text-sm text-gray-500">
-            By creating a campaign, you agree to our Terms of Service and Privacy Policy.
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );
