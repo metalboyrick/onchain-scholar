@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Copy, GraduationCap, XCircle } from "lucide-react";
 import { Hex, fromHex } from "viem";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import {
@@ -92,6 +92,8 @@ export default function CampaignDetails({ params: { address } }: { params: { add
     functionName: "getCampaignDetails",
   });
 
+  const { writeContractAsync } = useWriteContract();
+
   // parse data
   useEffect(() => {
     if (rawData) {
@@ -115,15 +117,15 @@ export default function CampaignDetails({ params: { address } }: { params: { add
         milestones: goals.map((goal, goalIndex) => ({
           name: fromHex(goal.name, { to: "string" }),
           gpaRequirement: decodeGpa(goal.criteria.minGPA).toFixed(1),
-          expectedFunds: Number(goal.target),
-          currentFunds: Number(goalBalances[goalIndex]),
+          expectedFunds: Number(goal.target) / 10 ** 18,
+          currentFunds: Number(goalBalances[goalIndex]) / 10 ** 18,
           status: goal.status as Status,
           attestation: fromHex(goalAttestationUIDs[goalIndex] as Hex, { to: "boolean" })
             ? goalAttestationUIDs[goalIndex]
             : null,
         })),
         isAdmitted,
-        currentMilestone: 1,
+        currentMilestone: goals.findIndex(goal => goal.status === Status.Running),
         admissionAttestation,
       });
     }
@@ -145,27 +147,37 @@ export default function CampaignDetails({ params: { address } }: { params: { add
   const handleFund = async () => {
     const amount = parseFloat(fundAmount);
     if (!amount || !campaign) return;
+
     // Simulating blockchain transaction
     toast({
       title: "Processing transaction...",
       description: "Please wait while we process your contribution.",
     });
-    setTimeout(() => {
-      setCampaign(prev => {
-        if (!prev) return null;
-        const updatedMilestones = [...prev.milestones];
-        updatedMilestones[prev.currentMilestone] = {
-          ...updatedMilestones[prev.currentMilestone],
-          currentFunds: updatedMilestones[prev.currentMilestone].currentFunds + amount,
-        };
-        return { ...prev, milestones: updatedMilestones };
-      });
-      setFundAmount("");
-      toast({
-        title: "Contribution successful!",
-        description: `You have successfully contributed ${formatIDR(amount)} to ${campaign.name}.`,
-      });
-    }, 2000);
+
+    await writeContractAsync({
+      ...CAMPAIGN_CONTRACT_SET,
+      functionName: "fund",
+      args: [BigInt(campaign.currentMilestone), BigInt(amount * 10 ** 18)],
+    });
+
+    // setTimeout(() => {
+    //   setCampaign(prev => {
+    //     if (!prev) return null;
+    //     const updatedMilestones = [...prev.milestones];
+    //     updatedMilestones[prev.currentMilestone] = {
+    //       ...updatedMilestones[prev.currentMilestone],
+    //       currentFunds: updatedMilestones[prev.currentMilestone].currentFunds + amount,
+    //     };
+    //     return { ...prev, milestones: updatedMilestones };
+    //   });
+    // }, 2000);
+
+    setFundAmount("");
+
+    toast({
+      title: "Contribution successful!",
+      description: `You have successfully contributed ${formatIDR(amount)} to ${campaign.name}.`,
+    });
   };
 
   const handleAttestation = async (milestoneIndex: number) => {

@@ -113,7 +113,7 @@ export default function CreateCampaign() {
 
     const contractGoals: Goal[] = milestones.map(({ semester, expectedFunds, gpaRequirement }) => ({
       name: toHex(`Semester ${semester}`, { size: 32 }),
-      target: BigInt(expectedFunds),
+      target: BigInt(Number(expectedFunds) * 10 ** 18),
       criteria: {
         minGPA: encodeGpa(gpaRequirement),
         passOrFail: true,
