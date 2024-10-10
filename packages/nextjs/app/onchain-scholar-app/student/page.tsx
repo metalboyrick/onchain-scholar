@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { GraduationCap, Plus } from "lucide-react";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import {
   Card,
@@ -14,48 +16,72 @@ import {
 } from "~~/components/onchain-scholar/ui/card";
 import { Progress } from "~~/components/onchain-scholar/ui/progress";
 import { Skeleton } from "~~/components/onchain-scholar/ui/skeleton";
-import { formatIDR } from "~~/utils/onchain-scholar/common";
+import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
+import { formatIDR, sum, truncateAddress } from "~~/utils/onchain-scholar/common";
+import { CAMPAIGN_CONTRACT, CAMPAIGN_FACTORY_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 type Campaign = {
+  address: string;
   id: string;
   name: string;
   university: string;
   goalAmount: number;
   raisedAmount: number;
-  deadline: string;
   milestones: number;
 };
 
 export default function StudentDashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { address: studentAddress } = useAccount();
+  const router = useRouter();
+
+  const { data: campaignContracts, isLoading: isFetchingCampaignContracts } = useReadContract({
+    ...CAMPAIGN_FACTORY_CONTRACT,
+    functionName: "getCampaignAddressesFromRecipientAddress",
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    args: [studentAddress!],
+    query: {
+      enabled: !!studentAddress,
+    },
+  });
+
+  const { data: readResults, isLoading: isReadingCampaignData } = useReadContracts({
+    contracts: campaignContracts?.map(campaignContract => ({
+      ...CAMPAIGN_CONTRACT,
+      address: campaignContract,
+      functionName: "getCampaignDetails",
+    })),
+    query: {
+      enabled: (campaignContracts || []).length > 0,
+    },
+  });
+
+  const isLoading = isReadingCampaignData || isFetchingCampaignContracts;
 
   // Simulating API call to fetch campaigns
   useEffect(() => {
-    setTimeout(() => {
-      setCampaigns([
-        {
-          id: "1",
-          name: "Computer Science Degree Fund",
-          university: "Tech University",
-          goalAmount: 20000,
-          raisedAmount: 15000,
-          deadline: "2024-08-31",
-          milestones: 4,
-        },
-        {
-          id: "2",
-          name: "Engineering Masters Scholarship",
-          university: "State College",
-          goalAmount: 25000,
-          raisedAmount: 10000,
-          deadline: "2024-12-15",
-          milestones: 5,
-        },
-      ]);
-      setIsLoading(false);
-    }, 1500); // Simulating network delay
-  }, []);
+    if (readResults && campaignContracts) {
+      const formattedCampaigns = readResults
+        .filter(readResult => readResult.status === "success")
+        .map((readResult: any) => readResult.result)
+        .map((data: any) => parseCampaignData(data))
+        .map((campaignData: ReturnType<typeof parseCampaignData>, campaignIndex) => {
+          const { name, id, institutionAddress, goals, goalBalances } = campaignData;
+
+          return {
+            address: campaignContracts[campaignIndex],
+            id: id.toString(),
+            name,
+            university: truncateAddress(institutionAddress),
+            goalAmount: sum(goals.map(goal => Number(goal.target))) / 10 ** 18,
+            raisedAmount: sum(goalBalances.map(balance => Number(balance))) / 10 ** 18,
+            milestones: goals.length,
+          };
+        });
+
+      setCampaigns(formattedCampaigns);
+    }
+  }, [readResults, campaignContracts]);
 
   if (isLoading) {
     return (
@@ -80,7 +106,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 w-[800px]">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Campaigns</h1>
         <Button asChild>
@@ -92,10 +118,14 @@ export default function StudentDashboard() {
       {campaigns && campaigns.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {campaigns.map(campaign => (
-            <Card key={campaign.id}>
+            <Card
+              key={campaign.id}
+              className="hover:bg-yellow-100 cursor-pointer"
+              onClick={() => router.push(`/onchain-scholar-app/campaign/${campaign.address}`)}
+            >
               <CardHeader>
                 <CardTitle>{campaign.name}</CardTitle>
-                <CardDescription>{campaign.university}</CardDescription>
+                <CardDescription>University Address: {campaign.university}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

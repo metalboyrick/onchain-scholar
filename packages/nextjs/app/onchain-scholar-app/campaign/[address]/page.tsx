@@ -23,7 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/onchain-
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~~/components/onchain-scholar/ui/tooltip";
 import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
 import scaffoldConfig from "~~/scaffold.config";
-import { Goal, Status } from "~~/services/onchain-scholar/types";
+import { Status } from "~~/services/onchain-scholar/types";
+import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
 import { decodeGpa, formatIDR, truncateAddress } from "~~/utils/onchain-scholar/common";
 import { CAMPAIGN_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
@@ -46,32 +47,6 @@ type CampaignDetails = {
   isAdmitted: boolean;
   admissionAttestation: string;
   currentMilestone: number;
-};
-
-const parseCampaignData = (result: any) => {
-  const [
-    name,
-    id,
-    institutionAddress,
-    recipientAddress,
-    goals,
-    goalAttestationUIDs,
-    goalBalances,
-    admissionAttestation,
-    isAdmitted,
-  ] = result;
-
-  return {
-    name: fromHex(name, { to: "string" }),
-    id: Number(id),
-    institutionAddress: institutionAddress as string,
-    recipientAddress: recipientAddress as string,
-    goals: goals as Goal[],
-    goalAttestationUIDs: goalAttestationUIDs as string[],
-    goalBalances: goalBalances.map((balance: any) => Number(balance)),
-    admissionAttestation: admissionAttestation as string,
-    isAdmitted: isAdmitted as boolean,
-  };
 };
 
 export default function CampaignDetails({ params: { address } }: { params: { address: string } }) {

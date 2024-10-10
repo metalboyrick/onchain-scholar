@@ -14,3 +14,7 @@ export const encodeGpa = (gpa: number | string) => {
 export const decodeGpa = (gpa: bigint) => {
   return Number(gpa) / 100;
 };
+
+export const sum = (values: number[]) => {
+  return values.reduce((acc, value) => acc + value, 0);
+};
