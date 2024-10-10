@@ -1,9 +1,9 @@
 // Enum for Status
 export enum Status {
-  Idle,
-  Running,
-  Granted,
-  Refunded,
+  Idle = 0,
+  Running = 1,
+  Granted = 2,
+  Refunded = 3,
 }
 
 // Type for Criteria

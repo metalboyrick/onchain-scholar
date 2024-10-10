@@ -181,6 +181,12 @@ contract Campaign {
         uint256 gpa,
         bool passOrFail
     ) public onlyInstitution isValidAttestation(_goalAttestationUID) {
+        // check whether goal is currently running
+        require(
+            goals[_goalIndex].status == CampaignMetadataLib.Status.Running,
+            "Goal is not running"
+        );
+
         // validate UID from EAS
         require(
             goalsAttestationUIDs[_goalIndex].length == 0,
@@ -199,7 +205,8 @@ contract Campaign {
 
         // if satisfy, grant money
         if (gpa >= goals[_goalIndex].criteria.minGPA && passOrFail) {
-            // TODO: scheme for institution, for now will trust the recipient
+            // TODO: scheme for institution later, for now will trust the recipient
+            goals[_goalIndex].status = CampaignMetadataLib.Status.Granted;
             sendToRecipient(goalBalances[_goalIndex]);
         }
         // if not satisfy, refund
@@ -209,6 +216,7 @@ contract Campaign {
 
         // either way, increment goal index
         currentGoalIndex = currentGoalIndex + 1;
+        goals[_goalIndex + 1].status = CampaignMetadataLib.Status.Running;
     }
 
     function sendToRecipient(uint256 _amount) private {
@@ -250,6 +258,9 @@ contract Campaign {
 
         // set is admitted to true
         isAdmitted = true;
+
+        // set first campaign status to running
+        goals[0].status = CampaignMetadataLib.Status.Running;
     }
 
     // for dropouts or misconduct
@@ -269,17 +280,6 @@ contract Campaign {
         refund(currentGoalIndex);
     }
 
-    // bytes32 public name;
-    // uint256 public id;
-    // address public institutionAddress;
-    // address public recipientAddress;
-
-    // CampaignMetadataLib.Goal[] public goals;
-    // bytes32[] public goalsAttestationUIDs;
-    // uint256[] public goalBalances;
-
-    // bytes32 public admissionAttestation;
-    // bool public isAdmitted;
     function getCampaignDetails()
         public
         view

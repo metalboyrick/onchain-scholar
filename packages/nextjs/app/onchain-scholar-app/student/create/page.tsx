@@ -137,7 +137,7 @@ export default function CreateCampaign() {
   if (!address) return <NotConnectedYet />;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 w-[800px]">
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Create Your Scholarship Campaign</CardTitle>
