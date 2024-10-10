@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Plus } from "lucide-react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import NotConnectedYet from "~~/components/onchain-scholar/not-connected-yet";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import {
   Card,
@@ -82,6 +83,8 @@ export default function StudentDashboard() {
       setCampaigns(formattedCampaigns);
     }
   }, [readResults, campaignContracts]);
+
+  if (!studentAddress) return <NotConnectedYet />;
 
   if (isLoading) {
     return (
