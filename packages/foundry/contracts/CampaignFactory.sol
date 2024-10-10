@@ -5,55 +5,57 @@ import "./lib/CampaignMetadataLib.sol";
 import "./Campaign.sol";
 
 contract CampaignFactory {
-  using CampaignMetadataLib for CampaignMetadataLib.Goal;
+    using CampaignMetadataLib for CampaignMetadataLib.Goal;
 
-  Campaign[] campaigns;
-  uint256 idCounter = 0;
-  mapping(address => Campaign[]) recipentAddressToCampaignMap;
-  mapping(address => Campaign[]) institutionAddressToCampaignMap;
+    Campaign[] campaigns;
+    uint256 idCounter = 0;
+    mapping(address => Campaign[]) recipentAddressToCampaignMap;
+    mapping(address => Campaign[]) institutionAddressToCampaignMap;
 
-  address public easAddress;
-  address public erc20Address;
+    address public easAddress;
+    address public erc20Address;
 
-  constructor(address _easAddress, address _erc20Address) {
-    easAddress = _easAddress;
-    erc20Address = _erc20Address;
-  }
+    constructor(address _easAddress, address _erc20Address) {
+        easAddress = _easAddress;
+        erc20Address = _erc20Address;
+    }
 
-  function createCampaign(
-    bytes32 _name,
-    address _institutionAddress,
-    address _recipientAddress,
-    CampaignMetadataLib.Goal[] memory _goals
-  ) public returns (address) {
-    idCounter++;
-    Campaign newCampaign = new Campaign(
-      _name,
-      idCounter,
-      _institutionAddress,
-      _recipientAddress,
-      address(this),
-      _goals,
-      easAddress,
-      erc20Address
-    );
-    campaigns.push(newCampaign);
+    event CampaignCreated(address creator, address campaignContract);
 
-    recipentAddressToCampaignMap[_recipientAddress].push(newCampaign);
-    institutionAddressToCampaignMap[_institutionAddress].push(newCampaign);
+    function createCampaign(
+        bytes32 _name,
+        address _institutionAddress,
+        address _recipientAddress,
+        CampaignMetadataLib.Goal[] memory _goals
+    ) public {
+        idCounter++;
+        Campaign newCampaign = new Campaign(
+            _name,
+            idCounter,
+            _institutionAddress,
+            _recipientAddress,
+            address(this),
+            _goals,
+            easAddress,
+            erc20Address
+        );
+        campaigns.push(newCampaign);
 
-    return address(newCampaign);
-  }
+        recipentAddressToCampaignMap[_recipientAddress].push(newCampaign);
+        institutionAddressToCampaignMap[_institutionAddress].push(newCampaign);
 
-  function getCampaignAddressesFromRecipientAddress(
-    address _recipientAddress
-  ) public view returns (Campaign[] memory) {
-    return recipentAddressToCampaignMap[_recipientAddress];
-  }
+        emit CampaignCreated(_recipientAddress, address(newCampaign));
+    }
 
-  function getCampaignAddressFromInstitutionAddress(
-    address _institutionAddress
-  ) public view returns (Campaign[] memory) {
-    return institutionAddressToCampaignMap[_institutionAddress];
-  }
+    function getCampaignAddressesFromRecipientAddress(
+        address _recipientAddress
+    ) public view returns (Campaign[] memory) {
+        return recipentAddressToCampaignMap[_recipientAddress];
+    }
+
+    function getCampaignAddressFromInstitutionAddress(
+        address _institutionAddress
+    ) public view returns (Campaign[] memory) {
+        return institutionAddressToCampaignMap[_institutionAddress];
+    }
 }

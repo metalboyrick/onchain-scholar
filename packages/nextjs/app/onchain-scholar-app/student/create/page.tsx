@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+import { decodeEventLog, toHex } from "viem";
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useToast } from "~~/components/hooks/use-toast";
+import NotConnectedYet from "~~/components/onchain-scholar/not-connected-yet";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import { Input } from "~~/components/onchain-scholar/ui/input";
 import { Label } from "~~/components/onchain-scholar/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~~/components/onchain-scholar/ui/select";
+import { Goal, Status } from "~~/services/onchain-scholar/types";
+import { encodeGpa } from "~~/utils/onchain-scholar/common";
+import { CAMPAIGN_FACTORY_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 type Milestone = {
   semester: number;
@@ -15,10 +23,15 @@ type Milestone = {
 };
 
 export default function CreateCampaign() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [institution, setInstitution] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
+  const [institutionWalletAddress, setInstitutionWalletAddress] = useState("");
   const [milestones, setMilestones] = useState<Milestone[]>([{ semester: 1, gpaRequirement: "", expectedFunds: "" }]);
+
+  const { address, isConnected } = useAccount();
+  const [createCampaignTxn, setCreateCampaignTxn] = useState("");
 
   const addMilestone = () => {
     setMilestones([...milestones, { semester: milestones.length + 1, gpaRequirement: "", expectedFunds: "" }]);
@@ -27,6 +40,10 @@ export default function CreateCampaign() {
   const removeMilestone = (index: number) => {
     setMilestones(milestones.filter((_, i) => i !== index));
   };
+
+  useEffect(() => {
+    console.debug({ address, isConnected });
+  }, [address, isConnected]);
 
   const updateMilestone = (index: number, field: keyof Milestone, value: string) => {
     const updatedMilestones = milestones.map((milestone, i) => {
@@ -38,11 +55,86 @@ export default function CreateCampaign() {
     setMilestones(updatedMilestones);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { writeContractAsync, isPending: isCreatingCampaignTxn } = useWriteContract({
+    mutation: {
+      onError: error => {
+        toast({
+          title: "Error Creating Campaign",
+          description: `${error.message}`,
+          variant: "destructive",
+        });
+      },
+    },
+  });
+
+  const {
+    isFetching: isFetchingTxnReceipt,
+    isLoading: isLoadingTxnReceipt,
+    data: txnReceipt,
+  } = useWaitForTransactionReceipt({
+    hash: createCampaignTxn as any,
+    query: {
+      enabled: createCampaignTxn.length > 0,
+    },
+  });
+
+  useEffect(() => {
+    if (txnReceipt) {
+      const { topics, data } = txnReceipt.logs[0];
+      const campaignEvent = decodeEventLog({
+        abi: CAMPAIGN_FACTORY_CONTRACT.abi,
+        topics,
+        data,
+      });
+
+      toast({
+        title: "Campaign Creation Success",
+        description: `Campaign Address: ${campaignEvent.args.campaignContract}`,
+        variant: "default",
+      });
+
+      router.push(`/onchain-scholar-app/campaign/${campaignEvent.args.campaignContract}`);
+    }
+  }, [router, toast, txnReceipt]);
+
+  const isCreatingCampaign = isCreatingCampaignTxn || isFetchingTxnReceipt || isLoadingTxnReceipt;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the form data to your backend or smart contract
-    console.log({ name, institution, walletAddress, milestones });
+
+    if (!address) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const contractGoals: Goal[] = milestones.map(({ semester, expectedFunds, gpaRequirement }) => ({
+      name: toHex(`Semester ${semester}`, { size: 32 }),
+      target: BigInt(expectedFunds),
+      criteria: {
+        minGPA: encodeGpa(gpaRequirement),
+        passOrFail: true,
+      },
+      status: Status.Idle,
+      sendToRecipient: 0n,
+      sendToInstitution: 0n,
+      backers: [],
+    }));
+
+    // write to smart contract
+    const txnHash = await writeContractAsync({
+      ...CAMPAIGN_FACTORY_CONTRACT,
+      functionName: "createCampaign",
+      args: [toHex(`${name} - ${institution}`, { size: 32 }), institutionWalletAddress, address, contractGoals],
+    });
+
+    setCreateCampaignTxn(txnHash);
   };
+
+  if (!address) return <NotConnectedYet />;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -79,8 +171,8 @@ export default function CreateCampaign() {
                 <Input
                   id="walletAddress"
                   placeholder="Enter the institution's wallet address"
-                  value={walletAddress}
-                  onChange={e => setWalletAddress(e.target.value)}
+                  value={institutionWalletAddress}
+                  onChange={e => setInstitutionWalletAddress(e.target.value)}
                   required
                 />
               </div>
@@ -119,7 +211,6 @@ export default function CreateCampaign() {
                             <SelectItem value="3.0">3.0</SelectItem>
                             <SelectItem value="3.5">3.5</SelectItem>
                             <SelectItem value="4.0">4.0</SelectItem>
-                            <SelectItem value="P/F">Pass/Fail</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -137,13 +228,20 @@ export default function CreateCampaign() {
                     </div>
                   </Card>
                 ))}
-                <Button type="button" variant="secondary" onClick={addMilestone} className="mt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addMilestone}
+                  disabled={isCreatingCampaign}
+                  className="mt-2"
+                >
                   <Plus />
                   Add Milestone
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full mt-6">
+            <Button type="submit" className="w-full mt-6" disabled={isCreatingCampaign}>
+              {isCreatingCampaign && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Campaign
             </Button>
           </form>

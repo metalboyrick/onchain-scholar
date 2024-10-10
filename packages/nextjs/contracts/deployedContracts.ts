@@ -99,13 +99,7 @@ const deployedContracts = {
               ],
             },
           ],
-          outputs: [
-            {
-              name: "",
-              type: "address",
-              internalType: "address",
-            },
-          ],
+          outputs: [],
           stateMutability: "nonpayable",
         },
         {
@@ -172,13 +166,32 @@ const deployedContracts = {
           ],
           stateMutability: "view",
         },
+        {
+          type: "event",
+          name: "CampaignCreated",
+          inputs: [
+            {
+              name: "creator",
+              type: "address",
+              indexed: false,
+              internalType: "address",
+            },
+            {
+              name: "campaignContract",
+              type: "address",
+              indexed: false,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
       ],
       inheritedFunctions: {},
     },
   },
   84532: {
     CampaignFactory: {
-      address: "0x86628f7434b7d8057673b231cee5596bb67576cb",
+      address: "0x771a14ca880a01c3d362061b0e77447db5e82f36",
       abi: [
         {
           type: "constructor",
@@ -270,13 +283,7 @@ const deployedContracts = {
               ],
             },
           ],
-          outputs: [
-            {
-              name: "",
-              type: "address",
-              internalType: "address",
-            },
-          ],
+          outputs: [],
           stateMutability: "nonpayable",
         },
         {
@@ -342,6 +349,25 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+        },
+        {
+          type: "event",
+          name: "CampaignCreated",
+          inputs: [
+            {
+              name: "creator",
+              type: "address",
+              indexed: false,
+              internalType: "address",
+            },
+            {
+              name: "campaignContract",
+              type: "address",
+              indexed: false,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
         },
       ],
       inheritedFunctions: {},
