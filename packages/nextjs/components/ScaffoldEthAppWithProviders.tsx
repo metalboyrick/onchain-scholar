@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "./onchain-scholar/Header";
+import IDRXBalanceFloat from "./onchain-scholar/idrx";
 import { BlockieAvatar } from "./scaffold-eth";
 import { RainbowKitProvider, lightTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,7 +21,15 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
         <main className="relative flex flex-col flex-1 max-w-[1000px] mx-auto">{children}</main>
         {/* <Footer /> */}
       </div>
-      <Toaster />
+      <IDRXBalanceFloat />
+      <Toaster
+        toastOptions={{
+          // Default options for specific types
+          loading: {
+            duration: 10000,
+          },
+        }}
+      />
     </>
   );
 };

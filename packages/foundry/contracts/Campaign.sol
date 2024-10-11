@@ -133,6 +133,7 @@ contract Campaign {
         // update funds list
         goalBalances[_goalIndex] += _amount;
         goalBackersAndValues[_goalIndex][msg.sender] += _amount;
+        goals[_goalIndex].backers.push(msg.sender);
     }
 
     // remaining fundable space for goal to prevent excess.

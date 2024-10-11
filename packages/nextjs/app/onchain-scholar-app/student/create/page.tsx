@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 import { decodeEventLog, toHex } from "viem";
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { useToast } from "~~/components/hooks/use-toast";
 import NotConnectedYet from "~~/components/onchain-scholar/not-connected-yet";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
@@ -24,7 +24,6 @@ type Milestone = {
 
 export default function CreateCampaign() {
   const router = useRouter();
-  const { toast } = useToast();
   const [name, setName] = useState("");
   const [institution, setInstitution] = useState("");
   const [institutionWalletAddress, setInstitutionWalletAddress] = useState("");
@@ -58,11 +57,7 @@ export default function CreateCampaign() {
   const { writeContractAsync, isPending: isCreatingCampaignTxn } = useWriteContract({
     mutation: {
       onError: error => {
-        toast({
-          title: "Error Creating Campaign",
-          description: `${error.message}`,
-          variant: "destructive",
-        });
+        toast.error(`Error creating campaign: ${error.message}`);
       },
     },
   });
@@ -87,11 +82,7 @@ export default function CreateCampaign() {
         data,
       });
 
-      toast({
-        title: "Campaign Creation Success",
-        description: `Campaign Address: ${campaignEvent.args.campaignContract}`,
-        variant: "default",
-      });
+      toast.success(`Campaign created at ${campaignEvent.args.campaignContract}`);
 
       router.push(`/onchain-scholar-app/campaign/${campaignEvent.args.campaignContract}`);
     }
@@ -103,11 +94,7 @@ export default function CreateCampaign() {
     e.preventDefault();
 
     if (!address) {
-      toast({
-        title: "Wallet not connected",
-        description: "Please connect your wallet.",
-        variant: "destructive",
-      });
+      toast.error("Wallet not connected, please connect your wallet");
       return;
     }
 

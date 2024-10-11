@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle, Loader2, XCircle } from "lucide-react";
+import toast from "react-hot-toast";
 import { fromHex } from "viem";
 import { useAccount, useChainId, useReadContract, useReadContracts, useWriteContract } from "wagmi";
 import NotConnectedYet from "~~/components/onchain-scholar/not-connected-yet";
@@ -56,7 +57,6 @@ type Campaign = {
 export default function UniversityAttestation() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
-  const { toast } = useToast();
 
   const chainId = useChainId();
 
@@ -89,6 +89,7 @@ export default function UniversityAttestation() {
     })),
     query: {
       enabled: (campaignContracts || []).length > 0,
+      staleTime: 0,
     },
   });
 
@@ -212,20 +213,14 @@ export default function UniversityAttestation() {
   ) => {
     if (isAdmitted) {
       // Simulating blockchain transaction for admission attestation
-      toast({
-        title: "Processing attestation...",
-        description: "Please wait while we record the admission attestation on the blockchain.",
-      });
+      toast.loading("Processing attestation");
 
       // send attestation to EAS + send to smart contract
       await attestAdmission({ studentAddress, campaignAddress });
     } else {
       if (!admissionUid) throw new Error("cannot revoke without admission uid");
 
-      toast({
-        title: "Processing revocation...",
-        description: "Please wait while we record the admission attestation on the blockchain.",
-      });
+      toast.loading("Processing revocation");
 
       await revokeAdmission({
         campaignAdmissionUid: admissionUid,
@@ -233,12 +228,9 @@ export default function UniversityAttestation() {
       });
     }
 
-    refetchCampaignContracts();
+    toast.success(`Admission Attestation Recorded, result: ${isAdmitted ? "admitted" : "rejected"}.`);
 
-    toast({
-      title: "Admission Attestation Recorded",
-      description: `The student has been ${isAdmitted ? "admitted" : "rejected"}.`,
-    });
+    refetchCampaignContracts();
   };
 
   const handleMilestoneAttestation = async (
@@ -248,17 +240,13 @@ export default function UniversityAttestation() {
     studentAddress: string,
   ) => {
     // Simulating blockchain transaction for milestone attestation
-    toast({
-      title: "Processing attestation...",
-      description: "Please wait while we record the milestone attestation on the blockchain.",
-    });
+    toast.loading("Processing attestation");
 
     await attestGoal({ campaignAddress, studentAddress, gpa, goalIndex: milestoneIndex });
 
-    toast({
-      title: "Milestone Attestation Recorded",
-      description: `Milestone ${milestoneIndex + 1} has been attested.`,
-    });
+    toast.success("Milestone Attestation Recorded");
+
+    refetchCampaignContracts();
   };
 
   if (!universityAddress) return <NotConnectedYet />;

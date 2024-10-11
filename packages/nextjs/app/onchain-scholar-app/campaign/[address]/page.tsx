@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Copy, GraduationCap, XCircle } from "lucide-react";
-import { fromHex } from "viem";
-import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, Copy, GraduationCap, Loader2, XCircle } from "lucide-react";
+import toast from "react-hot-toast";
+import { encodeFunctionData, fromHex } from "viem";
+import { useAccount, useChainId, usePublicClient, useReadContract, useWalletClient } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import {
@@ -21,9 +23,9 @@ import { Progress } from "~~/components/onchain-scholar/ui/progress";
 import { Skeleton } from "~~/components/onchain-scholar/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/onchain-scholar/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~~/components/onchain-scholar/ui/tooltip";
-import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
 import scaffoldConfig from "~~/scaffold.config";
 import { Status } from "~~/services/onchain-scholar/types";
+import { getBasename } from "~~/utils/base/basenames";
 import { isValidAttestationUID } from "~~/utils/eas/common";
 import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
 import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
@@ -55,23 +57,29 @@ export default function CampaignDetails({ params: { address } }: { params: { add
   const [campaign, setCampaign] = useState<CampaignDetails | null>(null);
   const [fundAmount, setFundAmount] = useState("");
   const [userRole, setUserRole] = useState<"funder" | "institution" | "student" | null>(null);
-  const { toast } = useToast();
 
   const { address: accountAddress } = useAccount();
-
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+
+  const chainId = useChainId();
 
   const CAMPAIGN_CONTRACT_SET = {
     ...CAMPAIGN_CONTRACT,
     address,
   };
 
-  const { data: rawData, isLoading } = useReadContract({
+  const {
+    data: rawData,
+    isLoading,
+    refetch,
+  } = useReadContract({
     ...CAMPAIGN_CONTRACT_SET,
     functionName: "getCampaignDetails",
+    query: {
+      staleTime: 0,
+    },
   });
-
-  const { writeContractAsync } = useWriteContract();
 
   // parse data
   useEffect(() => {
@@ -108,6 +116,36 @@ export default function CampaignDetails({ params: { address } }: { params: { add
     }
   }, [address, rawData]);
 
+  const { data: basenames } = useQuery({
+    queryKey: [
+      "get-basename-adresses",
+      campaign?.studentWalletAddress,
+      campaign?.universityWalletAddress,
+      publicClient,
+    ],
+    queryFn: async () => {
+      let studentBaseName;
+      let universityBasename;
+      if (campaign?.studentWalletAddress) {
+        studentBaseName = await getBasename(campaign?.studentWalletAddress, publicClient!);
+      }
+
+      if (campaign?.universityWalletAddress) {
+        universityBasename = await getBasename(campaign?.universityWalletAddress, publicClient!);
+      }
+
+      console.log({
+        studentBaseName,
+        universityBasename,
+      });
+
+      return {
+        studentBaseName,
+        universityBasename,
+      };
+    },
+  });
+
   // if address is student, set to student mode, else to funder mode
   useEffect(() => {
     if (accountAddress) {
@@ -122,14 +160,13 @@ export default function CampaignDetails({ params: { address } }: { params: { add
   }, [accountAddress, campaign]);
 
   const handleFund = async () => {
+    if (!accountAddress) toast.error("Wallet not connected");
+
     const amount = parseInt(fundAmount);
     if (!amount || !campaign) return;
 
     // Simulating blockchain transaction
-    toast({
-      title: "Processing transaction...",
-      description: "Please wait while we process your contribution.",
-    });
+    toast.loading("Please wait while we process your contribution.");
 
     const allowance = await publicClient?.readContract({
       ...MOCK_IDRX_CONTRACT,
@@ -137,48 +174,43 @@ export default function CampaignDetails({ params: { address } }: { params: { add
       args: [accountAddress!, campaign.contractAddress],
     });
 
-    console.log({ allowance });
-
     if ((allowance || 0n) < amount * 10 ** 18) {
-      await writeContractAsync({
-        ...MOCK_IDRX_CONTRACT,
-        functionName: "approve",
-        args: [campaign.contractAddress, BigInt(amount * 10 ** 18)],
+      await walletClient!.sendTransaction({
+        account: accountAddress,
+        to: MOCK_IDRX_CONTRACT.address,
+        data: encodeFunctionData({
+          functionName: "approve",
+          abi: MOCK_IDRX_CONTRACT.abi,
+          args: [campaign.contractAddress, BigInt((amount + 100) * 10 ** 18)],
+        }),
       });
     }
 
-    await writeContractAsync({
-      ...CAMPAIGN_CONTRACT_SET,
-      functionName: "fund",
-      args: [BigInt(campaign.currentMilestone), BigInt(amount * 10 ** 18)],
+    await walletClient!.sendTransaction({
+      account: accountAddress,
+      to: campaign.contractAddress,
+      data: encodeFunctionData({
+        ...CAMPAIGN_CONTRACT_SET,
+        functionName: "fund",
+        args: [BigInt(campaign.currentMilestone), BigInt(amount * 10 ** 18)],
+      }),
     });
 
-    // setTimeout(() => {
-    //   setCampaign(prev => {
-    //     if (!prev) return null;
-    //     const updatedMilestones = [...prev.milestones];
-    //     updatedMilestones[prev.currentMilestone] = {
-    //       ...updatedMilestones[prev.currentMilestone],
-    //       currentFunds: updatedMilestones[prev.currentMilestone].currentFunds + amount,
-    //     };
-    //     return { ...prev, milestones: updatedMilestones };
-    //   });
-    // }, 2000);
+    // await writeContractAsync({
+    //   ...CAMPAIGN_CONTRACT_SET,
+    //   functionName: "fund",
+    //   args: [BigInt(campaign.currentMilestone), BigInt(amount * 10 ** 18)],
+    // });
 
     setFundAmount("");
 
-    toast({
-      title: "Contribution successful!",
-      description: `You have successfully contributed ${formatIDR(amount)} to ${campaign.name}.`,
-    });
+    toast.success("Contribution successful!");
+
+    refetch();
   };
 
   const handleAttestation = async (milestoneIndex: number) => {
     // Simulating blockchain transaction for attestation
-    toast({
-      title: "Processing attestation...",
-      description: "Please wait while we record the attestation on the blockchain.",
-    });
     setTimeout(() => {
       setCampaign(prev => {
         if (!prev) return null;
@@ -193,19 +225,11 @@ export default function CampaignDetails({ params: { address } }: { params: { add
           currentMilestone: prev.currentMilestone + 1,
         };
       });
-      toast({
-        title: "Attestation recorded!",
-        description: "The milestone attestation has been successfully recorded on the blockchain.",
-      });
     }, 2000);
   };
 
   const handleRevokeFunds = async (milestoneIndex: number) => {
     // Simulating blockchain transaction for revoking funds
-    toast({
-      title: "Processing fund revocation...",
-      description: "Please wait while we process the fund revocation.",
-    });
     setTimeout(() => {
       const prevGoalName = campaign?.milestones[campaign?.currentMilestone || 0];
       setCampaign(prev => {
@@ -218,20 +242,13 @@ export default function CampaignDetails({ params: { address } }: { params: { add
         };
         return { ...prev, milestones: updatedMilestones };
       });
-      toast({
-        title: "Funds revoked!",
-        description: `Funds for ${prevGoalName} have been successfully revoked.`,
-      });
     }, 2000);
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(
       () => {
-        toast({
-          title: "Copied to clipboard",
-          description: "The address has been copied to your clipboard.",
-        });
+        toast.success("Copied to clipboard");
       },
       err => {
         console.error("Could not copy text: ", err);
@@ -288,7 +305,9 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                   target="_blank"
                   className="text-sm text-secondary hover:underline hover:text-primary"
                 >
-                  {truncateAddress(campaign.universityWalletAddress)}
+                  {!!basenames?.universityBasename
+                    ? basenames?.universityBasename
+                    : truncateAddress(campaign.universityWalletAddress)}
                 </a>
                 <TooltipProvider>
                   <Tooltip>
@@ -317,7 +336,9 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                   target="_blank"
                   className="text-sm text-secondary hover:underline hover:text-primary"
                 >
-                  {truncateAddress(campaign.studentWalletAddress)}
+                  {!!basenames?.studentBaseName
+                    ? basenames?.studentBaseName
+                    : truncateAddress(campaign.studentWalletAddress)}
                 </a>
                 <TooltipProvider>
                   <Tooltip>
@@ -441,7 +462,10 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                           value={fundAmount}
                           onChange={e => setFundAmount(e.target.value)}
                         />
-                        <Button onClick={handleFund}>Fund</Button>
+                        <Button disabled={isLoading} onClick={handleFund}>
+                          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Fund
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -535,11 +559,6 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                         variant="destructive"
                         onClick={() => {
                           // Here you would implement the logic to revoke admission and funds
-                          toast({
-                            title: "Admission Revoked",
-                            description:
-                              "The student's admission has been revoked and incomplete milestone funds have been returned.",
-                          });
                         }}
                       >
                         Confirm Revocation
