@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Copy, GraduationCap, XCircle } from "lucide-react";
 import { Hex, fromHex } from "viem";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import {
@@ -28,7 +28,7 @@ import { isValidAttestationUID } from "~~/utils/eas/common";
 import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
 import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
 import { decodeGpa, formatIDR, truncateAddress } from "~~/utils/onchain-scholar/common";
-import { CAMPAIGN_CONTRACT } from "~~/utils/onchain-scholar/constants";
+import { CAMPAIGN_CONTRACT, MOCK_IDRX_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 type Milestone = {
   name: string;
@@ -58,6 +58,8 @@ export default function CampaignDetails({ params: { address } }: { params: { add
   const { toast } = useToast();
 
   const { address: accountAddress } = useAccount();
+
+  const publicClient = usePublicClient();
 
   const CAMPAIGN_CONTRACT_SET = {
     ...CAMPAIGN_CONTRACT,
@@ -130,6 +132,22 @@ export default function CampaignDetails({ params: { address } }: { params: { add
       title: "Processing transaction...",
       description: "Please wait while we process your contribution.",
     });
+
+    const allowance = await publicClient?.readContract({
+      ...MOCK_IDRX_CONTRACT,
+      functionName: "allowance",
+      args: [accountAddress!, campaign.contractAddress],
+    });
+
+    console.log({ allowance });
+
+    if ((allowance || 0n) < amount * 10 ** 18) {
+      await writeContractAsync({
+        ...MOCK_IDRX_CONTRACT,
+        functionName: "approve",
+        args: [campaign.contractAddress, BigInt(amount * 10 ** 18)],
+      });
+    }
 
     await writeContractAsync({
       ...CAMPAIGN_CONTRACT_SET,

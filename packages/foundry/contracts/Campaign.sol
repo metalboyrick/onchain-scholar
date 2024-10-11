@@ -18,10 +18,6 @@ import "./lib/CampaignMetadataLib.sol";
 contract Campaign {
     using CampaignMetadataLib for CampaignMetadataLib.Goal;
 
-    struct BackersAndValues {
-        mapping(address => uint256) data;
-    }
-
     // state variables for our campaign contracts
     bytes32 public name;
     uint256 public id;
@@ -35,7 +31,7 @@ contract Campaign {
 
     uint256 currentGoalIndex = 0;
     CampaignMetadataLib.Goal[] public goals;
-    BackersAndValues[] goalBackersAndValues;
+    mapping(uint256 => mapping(address => uint256)) goalBackersAndValues;
     bytes32[] public goalsAttestationUIDs;
     uint256[] public goalBalances;
 
@@ -69,14 +65,18 @@ contract Campaign {
         erc20 = IERC20(_erc20Address);
         eas = IEAS(_easAddress);
 
-        // copy goals
-        for (uint128 i = 0; i < _goals.length; i++) {
-            goals.push(_goals[i]);
-        }
-
-        // create empty array
+        goals = new CampaignMetadataLib.Goal[](_goals.length);
         goalsAttestationUIDs = new bytes32[](_goals.length);
         goalBalances = new uint256[](_goals.length);
+
+        // copy goals
+        for (uint128 i = 0; i < _goals.length; i++) {
+            goals[i] = _goals[i]; // Copy goals
+            goalsAttestationUIDs[i] = bytes32(0); // Initialize attestation UIDs to 0
+            goalBalances[i] = 0; // Initialize goal balances to 0
+        }
+
+        // initialize backesAndValues to 50 people
     }
 
     modifier isValidGoalAddress(uint256 _goalIndex) {
@@ -131,7 +131,7 @@ contract Campaign {
 
         // update funds list
         goalBalances[_goalIndex] += _amount;
-        goalBackersAndValues[_goalIndex].data[msg.sender] += _amount;
+        goalBackersAndValues[_goalIndex][msg.sender] += _amount;
     }
 
     // remaining fundable space for goal to prevent excess.
@@ -156,7 +156,7 @@ contract Campaign {
                 erc20.transferFrom(
                     address(this),
                     goals[_goalIndex].backers[i],
-                    goalBackersAndValues[_goalIndex].data[
+                    goalBackersAndValues[_goalIndex][
                         goals[_goalIndex].backers[i]
                     ]
                 ),
