@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle, Loader2, XCircle } from "lucide-react";
 import { fromHex } from "viem";
 import { useAccount, useChainId, useReadContract, useReadContracts, useWriteContract } from "wagmi";
+import NotConnectedYet from "~~/components/onchain-scholar/not-connected-yet";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import {
@@ -25,6 +26,7 @@ import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
 import scaffoldConfig from "~~/scaffold.config";
 import { Status } from "~~/services/onchain-scholar/types";
 import { easAttestAdmission, easRevokeAdmission } from "~~/utils/eas/attestation";
+import { isValidAttestationUID } from "~~/utils/eas/common";
 import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
 import { useEthersSigner } from "~~/utils/eas/ethersAdapter";
 import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
@@ -65,11 +67,7 @@ export default function UniversityAttestation() {
 
   const { writeContractAsync, isPending: isWriteContractPending } = useWriteContract();
 
-  const {
-    data: campaignContracts,
-    isLoading: isFetchingCampaignContracts,
-    refetch: refetchCampaignContracts,
-  } = useReadContract({
+  const { data: campaignContracts, isLoading: isFetchingCampaignContracts } = useReadContract({
     ...CAMPAIGN_FACTORY_CONTRACT,
     functionName: "getCampaignAddressFromInstitutionAddress",
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -79,7 +77,11 @@ export default function UniversityAttestation() {
     },
   });
 
-  const { data: readResults, isLoading: isReadingCampaignData } = useReadContracts({
+  const {
+    data: readResults,
+    isLoading: isReadingCampaignData,
+    refetch: refetchCampaignContracts,
+  } = useReadContracts({
     contracts: campaignContracts?.map(campaignContract => ({
       ...CAMPAIGN_CONTRACT,
       address: campaignContract,
@@ -242,6 +244,8 @@ export default function UniversityAttestation() {
     }, 2000);
   };
 
+  if (!universityAddress) return <NotConnectedYet />;
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -314,7 +318,7 @@ export default function UniversityAttestation() {
                       <span className="text-green-600 flex items-center">
                         <CheckCircle className="w-4 h-4 mr-1" /> Admitted
                       </span>
-                    ) : campaign.admissionAttestation ? (
+                    ) : isValidAttestationUID(campaign.admissionAttestation) ? (
                       <span className="text-red-600 flex items-center">
                         <XCircle className="w-4 h-4 mr-1" /> Admission Revoked
                       </span>
@@ -324,7 +328,7 @@ export default function UniversityAttestation() {
                       </span>
                     )}
                   </div>
-                  {campaign.admissionAttestation && (
+                  {isValidAttestationUID(campaign.admissionAttestation) && (
                     <div className="flex items-center space-x-2 text-sm">
                       <span className="font-medium">Admission Attestation UID:</span>
                       <a
@@ -346,7 +350,7 @@ export default function UniversityAttestation() {
                         isAttestingAdmission ||
                         isWriteContractPending ||
                         isRevokingAdmission ||
-                        !!campaign.admissionAttestation
+                        isValidAttestationUID(campaign.admissionAttestation)
                       }
                     >
                       {(isAttestingAdmission || isWriteContractPending || isRevokingAdmission) && (
@@ -436,7 +440,7 @@ export default function UniversityAttestation() {
                           <div className="text-red-600 flex items-center">
                             <XCircle className="w-4 h-4 mr-2" />
                             Refunded - Attestation:{" "}
-                            {campaign.admissionAttestation.length > 0 && !campaign.isAdmitted
+                            {isValidAttestationUID(campaign.admissionAttestation) && !campaign.isAdmitted
                               ? "Admission revoked"
                               : milestone.attestation}
                           </div>

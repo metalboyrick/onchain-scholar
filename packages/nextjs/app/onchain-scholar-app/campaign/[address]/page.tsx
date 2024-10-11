@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~~/com
 import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
 import scaffoldConfig from "~~/scaffold.config";
 import { Status } from "~~/services/onchain-scholar/types";
+import { isValidAttestationUID } from "~~/utils/eas/common";
 import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
 import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
 import { decodeGpa, formatIDR, truncateAddress } from "~~/utils/onchain-scholar/common";
@@ -469,7 +470,7 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                   <span className={"text-green-500"}>The student has been admitted to the institution.</span>
                 ) : (
                   <span className={"text-red-500"}>
-                    {campaign.admissionAttestation
+                    {isValidAttestationUID(campaign.admissionAttestation)
                       ? "Student admission has been revoked."
                       : "Student has no admission attestation yet."}
                   </span>
