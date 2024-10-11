@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle, Loader2, XCircle } from "lucide-react";
+import { fromHex } from "viem";
+import { useAccount, useChainId, useReadContract, useReadContracts, useWriteContract } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
 import {
@@ -19,97 +22,194 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Skeleton } from "~~/components/onchain-scholar/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/onchain-scholar/ui/tabs";
 import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
+import scaffoldConfig from "~~/scaffold.config";
+import { Status } from "~~/services/onchain-scholar/types";
+import { easAttestAdmission, easRevokeAdmission } from "~~/utils/eas/attestation";
+import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
+import { useEthersSigner } from "~~/utils/eas/ethersAdapter";
+import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
+import { decodeGpa, formatIDR, sum, truncateAddress } from "~~/utils/onchain-scholar/common";
+import { CAMPAIGN_CONTRACT, CAMPAIGN_FACTORY_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 type Milestone = {
-  semester: number;
+  name: string;
   gpaRequirement: string;
   expectedFunds: number;
   currentFunds: number;
-  isCompleted: boolean;
+  status: Status;
   attestation?: string;
 };
 
 type Campaign = {
   id: string;
-  studentName: string;
+  name: string;
   institution: string;
+  studentAddress: string;
   contractAddress: string;
   isAdmitted: boolean;
+  admissionAttestation: string;
   milestones: Milestone[];
-  currentMilestone: number;
-};
-
-const formatIDR = (amount: number) => {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(amount);
 };
 
 export default function UniversityAttestation() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Simulating API call to fetch campaigns
-    setTimeout(() => {
-      setCampaigns([
-        {
-          id: "1",
-          studentName: "Alice Johnson",
-          institution: "Tech University",
-          contractAddress: "0x1234567890123456789012345678901234567890",
-          isAdmitted: false,
-          milestones: [
-            { semester: 1, gpaRequirement: "3.0", expectedFunds: 20000000, currentFunds: 20000000, isCompleted: false },
-            { semester: 2, gpaRequirement: "3.0", expectedFunds: 20000000, currentFunds: 10000000, isCompleted: false },
-            { semester: 3, gpaRequirement: "3.2", expectedFunds: 25000000, currentFunds: 0, isCompleted: false },
-            { semester: 4, gpaRequirement: "3.2", expectedFunds: 25000000, currentFunds: 0, isCompleted: false },
-          ],
-          currentMilestone: 0,
-        },
-        {
-          id: "2",
-          studentName: "Bob Smith",
-          institution: "Tech University",
-          contractAddress: "0x0987654321098765432109876543210987654321",
-          isAdmitted: true,
-          milestones: [
-            {
-              semester: 1,
-              gpaRequirement: "3.0",
-              expectedFunds: 15000000,
-              currentFunds: 15000000,
-              isCompleted: true,
-              attestation: "Completed with 3.5 GPA",
-            },
-            { semester: 2, gpaRequirement: "3.0", expectedFunds: 15000000, currentFunds: 15000000, isCompleted: false },
-            { semester: 3, gpaRequirement: "3.2", expectedFunds: 20000000, currentFunds: 10000000, isCompleted: false },
-            { semester: 4, gpaRequirement: "3.2", expectedFunds: 20000000, currentFunds: 5000000, isCompleted: false },
-          ],
-          currentMilestone: 1,
-        },
-      ]);
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+  const chainId = useChainId();
 
-  const handleAdmissionAttestation = async (campaignId: string, isAdmitted: boolean) => {
-    // Simulating blockchain transaction for admission attestation
-    toast({
-      title: "Processing attestation...",
-      description: "Please wait while we record the admission attestation on the blockchain.",
-    });
-    setTimeout(() => {
-      setCampaigns(prevCampaigns =>
-        prevCampaigns.map(campaign =>
-          campaign.id === campaignId ? { ...campaign, isAdmitted: isAdmitted } : campaign,
-        ),
-      );
-      toast({
-        title: "Admission Attestation Recorded",
-        description: `The student has been ${isAdmitted ? "admitted" : "rejected"}.`,
+  // const ethersProvider = useEthersProvider({ chainId });
+  const ethersSigner = useEthersSigner({ chainId });
+
+  const { address: universityAddress } = useAccount();
+
+  const { writeContractAsync, isPending: isWriteContractPending } = useWriteContract();
+
+  const {
+    data: campaignContracts,
+    isLoading: isFetchingCampaignContracts,
+    refetch: refetchCampaignContracts,
+  } = useReadContract({
+    ...CAMPAIGN_FACTORY_CONTRACT,
+    functionName: "getCampaignAddressFromInstitutionAddress",
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    args: [universityAddress!],
+    query: {
+      enabled: !!universityAddress,
+    },
+  });
+
+  const { data: readResults, isLoading: isReadingCampaignData } = useReadContracts({
+    contracts: campaignContracts?.map(campaignContract => ({
+      ...CAMPAIGN_CONTRACT,
+      address: campaignContract,
+      functionName: "getCampaignDetails",
+    })),
+    query: {
+      enabled: (campaignContracts || []).length > 0,
+    },
+  });
+
+  const isLoading = isReadingCampaignData || isFetchingCampaignContracts;
+
+  // we compile the results and put it in displayable format
+  useEffect(() => {
+    if (readResults && campaignContracts) {
+      const formattedCampaigns = readResults
+        .filter(readResult => readResult.status === "success")
+        .map((readResult: any) => readResult.result)
+        .map((data: any) => parseCampaignData(data))
+        .map((campaignData: ReturnType<typeof parseCampaignData>, campaignIndex) => {
+          const {
+            name,
+            id,
+            institutionAddress,
+            goals,
+            goalBalances,
+            isAdmitted,
+            admissionAttestation,
+            goalAttestationUIDs,
+            recipientAddress,
+          } = campaignData;
+
+          return {
+            contractAddress: campaignContracts[campaignIndex],
+            id: id.toString(),
+            name,
+            studentAddress: recipientAddress,
+            institution: truncateAddress(institutionAddress),
+            goalAmount: sum(goals.map(goal => Number(goal.target))) / 10 ** 18,
+            raisedAmount: sum(goalBalances.map(balance => Number(balance))) / 10 ** 18,
+            isAdmitted,
+            admissionAttestation,
+            milestones: goals.map((goal, goalIndex) => {
+              const { status } = goal;
+
+              return {
+                name: fromHex(goal.name, { to: "string" }),
+                gpaRequirement: decodeGpa(goal.criteria.minGPA).toFixed(1),
+                expectedFunds: Number(goal.target) / 10 ** 18,
+                currentFunds: Number(goalBalances[goalIndex]) / 10 ** 18,
+                status,
+                attestation:
+                  goalAttestationUIDs[goalIndex].length > 0
+                    ? fromHex(goalAttestationUIDs[goalIndex] as `0x${string}`, { to: "string" })
+                    : undefined,
+              };
+            }),
+          };
+        });
+
+      setCampaigns(formattedCampaigns);
+    }
+  }, [readResults, campaignContracts]);
+
+  const { mutateAsync: attestAdmission, isPending: isAttestingAdmission } = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    mutationFn: async ({ studentAddress, campaignAddress }: { studentAddress: string; campaignAddress: string }) => {
+      const { uid, encodedData } = await easAttestAdmission(ethersSigner!, studentAddress);
+      return await writeContractAsync({
+        ...CAMPAIGN_CONTRACT,
+        address: campaignAddress,
+        functionName: "attestAdmission",
+        args: [uid, encodedData],
       });
-    }, 2000);
+    },
+  });
+
+  const { mutateAsync: revokeAdmission, isPending: isRevokingAdmission } = useMutation({
+    mutationFn: async ({
+      campaignAdmissionUid,
+      campaignAddress,
+    }: {
+      campaignAdmissionUid: string;
+      campaignAddress: string;
+    }) => {
+      await easRevokeAdmission(ethersSigner!, campaignAdmissionUid);
+      await writeContractAsync({
+        ...CAMPAIGN_CONTRACT,
+        address: campaignAddress,
+        functionName: "revokeAdmission",
+        args: [campaignAdmissionUid],
+      });
+    },
+  });
+
+  const handleAdmissionAttestation = async (
+    studentAddress: string,
+    isAdmitted: boolean,
+    campaignAddress: string,
+    admissionUid?: string,
+  ) => {
+    if (isAdmitted) {
+      // Simulating blockchain transaction for admission attestation
+      toast({
+        title: "Processing attestation...",
+        description: "Please wait while we record the admission attestation on the blockchain.",
+      });
+
+      // send attestation to EAS + send to smart contract
+      await attestAdmission({ studentAddress, campaignAddress });
+    } else {
+      if (!admissionUid) throw new Error("cannot revoke without admission uid");
+
+      toast({
+        title: "Processing revocation...",
+        description: "Please wait while we record the admission attestation on the blockchain.",
+      });
+
+      await revokeAdmission({
+        campaignAdmissionUid: admissionUid,
+        campaignAddress,
+      });
+    }
+
+    refetchCampaignContracts();
+
+    toast({
+      title: "Admission Attestation Recorded",
+      description: `The student has been ${isAdmitted ? "admitted" : "rejected"}.`,
+    });
   };
 
   const handleMilestoneAttestation = async (campaignId: string, milestoneIndex: number, attestation: string) => {
@@ -125,13 +225,11 @@ export default function UniversityAttestation() {
             const updatedMilestones = [...campaign.milestones];
             updatedMilestones[milestoneIndex] = {
               ...updatedMilestones[milestoneIndex],
-              isCompleted: true,
               attestation: attestation,
             };
             return {
               ...campaign,
               milestones: updatedMilestones,
-              currentMilestone: campaign.currentMilestone + 1,
             };
           }
           return campaign;
@@ -156,8 +254,15 @@ export default function UniversityAttestation() {
 
   const campaign = campaigns.find(c => c.id === selectedCampaign);
 
+  if (isLoading)
+    return (
+      <div>
+        <Skeleton className="w-[800px] h-[200px]"></Skeleton>
+      </div>
+    );
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 w-[800px]">
       <h1 className="text-3xl font-bold mb-6">University Attestation Dashboard</h1>
       <Card className="mb-6">
         <CardHeader>
@@ -172,7 +277,7 @@ export default function UniversityAttestation() {
             <SelectContent>
               {campaigns.map(campaign => (
                 <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.studentName} - {campaign.institution}
+                  {campaign.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -183,8 +288,17 @@ export default function UniversityAttestation() {
       {campaign && (
         <Card>
           <CardHeader>
-            <CardTitle>{campaign.studentName}&apos;s Campaign</CardTitle>
-            <CardDescription>Contract Address: {campaign.contractAddress}</CardDescription>
+            <CardTitle>{campaign.name}</CardTitle>
+            <CardDescription>
+              Contract Address:{" "}
+              <a
+                href={`${scaffoldConfig.targetNetworks[0].blockExplorers.default.url}/address/${campaign.contractAddress}`}
+                target="_blank"
+                className="text-sm text-secondary hover:underline hover:text-primary"
+              >
+                {campaign.contractAddress}
+              </a>
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="admission">
@@ -193,12 +307,16 @@ export default function UniversityAttestation() {
                 <TabsTrigger value="milestones">Milestones</TabsTrigger>
               </TabsList>
               <TabsContent value="admission">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
+                <div className="space-y-4 mt-4">
+                  <div className="flex items-center space-x-2 text-sm">
                     <span className="font-medium">Current Status:</span>
                     {campaign.isAdmitted ? (
                       <span className="text-green-600 flex items-center">
                         <CheckCircle className="w-4 h-4 mr-1" /> Admitted
+                      </span>
+                    ) : campaign.admissionAttestation ? (
+                      <span className="text-red-600 flex items-center">
+                        <XCircle className="w-4 h-4 mr-1" /> Admission Revoked
                       </span>
                     ) : (
                       <span className="text-red-600 flex items-center">
@@ -206,8 +324,36 @@ export default function UniversityAttestation() {
                       </span>
                     )}
                   </div>
+                  {campaign.admissionAttestation && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <span className="font-medium">Admission Attestation UID:</span>
+                      <a
+                        href={`${EAS_SCAN_BASE_URL}/${campaign.admissionAttestation}`}
+                        target="_blank"
+                        className="text-sm text-secondary hover:underline hover:text-primary"
+                      >
+                        {campaign.admissionAttestation}
+                      </a>
+                    </div>
+                  )}
+
                   {!campaign.isAdmitted && (
-                    <Button onClick={() => handleAdmissionAttestation(campaign.id, true)}>Attest Admission</Button>
+                    <Button
+                      onClick={() =>
+                        handleAdmissionAttestation(campaign.studentAddress, true, campaign.contractAddress)
+                      }
+                      disabled={
+                        isAttestingAdmission ||
+                        isWriteContractPending ||
+                        isRevokingAdmission ||
+                        !!campaign.admissionAttestation
+                      }
+                    >
+                      {(isAttestingAdmission || isWriteContractPending || isRevokingAdmission) && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Attest Admission
+                    </Button>
                   )}
                   {campaign.isAdmitted && (
                     <Dialog>
@@ -225,7 +371,21 @@ export default function UniversityAttestation() {
                           </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
-                          <Button variant="destructive" onClick={() => handleAdmissionAttestation(campaign.id, false)}>
+                          <Button
+                            variant="destructive"
+                            onClick={() =>
+                              handleAdmissionAttestation(
+                                campaign.studentAddress,
+                                false,
+                                campaign.contractAddress,
+                                campaign.admissionAttestation,
+                              )
+                            }
+                            disabled={isAttestingAdmission || isWriteContractPending || isRevokingAdmission}
+                          >
+                            {(isAttestingAdmission || isWriteContractPending || isRevokingAdmission) && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
                             Confirm Revocation
                           </Button>
                         </DialogFooter>
@@ -239,19 +399,21 @@ export default function UniversityAttestation() {
                   {campaign.milestones.map((milestone, index) => (
                     <Card key={index}>
                       <CardHeader>
-                        <CardTitle>Semester {milestone.semester}</CardTitle>
+                        <CardTitle>{milestone.name}</CardTitle>
                         <CardDescription>
                           GPA Requirement: {milestone.gpaRequirement} | Funds: {formatIDR(milestone.currentFunds)} /{" "}
                           {formatIDR(milestone.expectedFunds)}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        {milestone.isCompleted ? (
+                        {milestone.status === Status.Granted && (
                           <div className="text-green-600 flex items-center">
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Completed - Attestation: {milestone.attestation}
                           </div>
-                        ) : index === campaign.currentMilestone ? (
+                        )}
+
+                        {milestone.status === Status.Running && (
                           <div className="space-y-4">
                             <Label htmlFor={`attestation-${index}`}>Attestation</Label>
                             <Input id={`attestation-${index}`} placeholder="Enter attestation details" />
@@ -266,8 +428,18 @@ export default function UniversityAttestation() {
                               Submit Attestation
                             </Button>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">Pending</span>
+                        )}
+
+                        {milestone.status === Status.Idle && <span className="text-muted-foreground">Pending</span>}
+
+                        {milestone.status === Status.Refunded && (
+                          <div className="text-red-600 flex items-center">
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Refunded - Attestation:{" "}
+                            {campaign.admissionAttestation.length > 0 && !campaign.isAdmitted
+                              ? "Admission revoked"
+                              : milestone.attestation}
+                          </div>
                         )}
                       </CardContent>
                     </Card>

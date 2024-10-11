@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~~/com
 import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
 import scaffoldConfig from "~~/scaffold.config";
 import { Status } from "~~/services/onchain-scholar/types";
+import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
 import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
 import { decodeGpa, formatIDR, truncateAddress } from "~~/utils/onchain-scholar/common";
 import { CAMPAIGN_CONTRACT } from "~~/utils/onchain-scholar/constants";
@@ -120,7 +121,7 @@ export default function CampaignDetails({ params: { address } }: { params: { add
   }, [accountAddress, campaign]);
 
   const handleFund = async () => {
-    const amount = parseFloat(fundAmount);
+    const amount = parseInt(fundAmount);
     if (!amount || !campaign) return;
 
     // Simulating blockchain transaction
@@ -464,11 +465,25 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                 ) : (
                   <XCircle className="h-5 w-5 text-red-500" />
                 )}
-                <p className="text-lg">
-                  {campaign.isAdmitted
-                    ? "The student has been admitted to the institution."
-                    : "Student has no admission attestation yet."}
-                </p>
+                {campaign.isAdmitted ? (
+                  <span className={"text-green-500"}>The student has been admitted to the institution.</span>
+                ) : (
+                  <span className={"text-red-500"}>
+                    {campaign.admissionAttestation
+                      ? "Student admission has been revoked."
+                      : "Student has no admission attestation yet."}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <p className="font-medium text-sm">Admission Attestation UID: </p>
+                <a
+                  href={`${EAS_SCAN_BASE_URL}/${campaign.admissionAttestation}`}
+                  target="_blank"
+                  className="text-sm text-secondary hover:underline hover:text-primary"
+                >
+                  {campaign.admissionAttestation}
+                </a>
               </div>
               {userRole === "institution" && !campaign.isAdmitted && (
                 <Button className="mt-4">Confirm Admission</Button>

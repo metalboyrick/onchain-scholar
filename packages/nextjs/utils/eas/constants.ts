@@ -1,0 +1,5 @@
+export const EAS_CONTRACT_ADDRESS = "0x4200000000000000000000000000000000000021";
+export const EAS_ADMISSION_SCHEMA_UID = "0x10e7e9fa9b0d7a5f61169435b083f0fcff3718ed1e9c54e88523b24f2f3481e7";
+export const EAS_GOAL_SCHEMA_UID = "0xb28a278388b42d893918d88ec6c9f4bc68cf863668a1a89d13f8998a4a9f1fd0";
+
+export const EAS_SCAN_BASE_URL = "https://base-sepolia.easscan.org/attestation/view";

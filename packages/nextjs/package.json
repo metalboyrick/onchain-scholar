@@ -16,6 +16,8 @@
   "dependencies": {
     "@dynamic-labs/ethereum": "^3.3.0",
     "@dynamic-labs/sdk-react-core": "^3.3.0",
+    "@ethereum-attestation-service/eas-sdk": "^2.7.0",
+    "@ethersproject/providers": "^5.7.2",
     "@headlessui/react": "latest",
     "@heroicons/react": "~2.1.5",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -34,6 +36,7 @@
     "burner-connector": "~0.0.8",
     "class-variance-authority": "^0.7.0",
     "daisyui": "4.12.10",
+    "ethers": "^6.13.3",
     "lucide-react": "^0.451.0",
     "next": "~14.2.11",
     "next-nprogress-bar": "~2.3.13",
