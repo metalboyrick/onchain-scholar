@@ -25,12 +25,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/onchain-
 import { useToast } from "~~/components/onchain-scholar/ui/use-toast";
 import scaffoldConfig from "~~/scaffold.config";
 import { Status } from "~~/services/onchain-scholar/types";
-import { easAttestAdmission, easRevokeAdmission } from "~~/utils/eas/attestation";
+import { easAttestAdmission, easAttestGoal, easRevokeAdmission } from "~~/utils/eas/attestation";
 import { isValidAttestationUID } from "~~/utils/eas/common";
 import { EAS_SCAN_BASE_URL } from "~~/utils/eas/constants";
 import { useEthersSigner } from "~~/utils/eas/ethersAdapter";
 import { parseCampaignData } from "~~/utils/onchain-scholar/campaigns";
-import { decodeGpa, formatIDR, sum, truncateAddress } from "~~/utils/onchain-scholar/common";
+import { decodeGpa, encodeGpa, formatIDR, sum, truncateAddress } from "~~/utils/onchain-scholar/common";
 import { CAMPAIGN_CONTRACT, CAMPAIGN_FACTORY_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 type Milestone = {
@@ -133,10 +133,9 @@ export default function UniversityAttestation() {
                 expectedFunds: Number(goal.target) / 10 ** 18,
                 currentFunds: Number(goalBalances[goalIndex]) / 10 ** 18,
                 status,
-                attestation:
-                  goalAttestationUIDs[goalIndex].length > 0
-                    ? fromHex(goalAttestationUIDs[goalIndex] as `0x${string}`, { to: "string" })
-                    : undefined,
+                attestation: isValidAttestationUID(goalAttestationUIDs[goalIndex])
+                  ? goalAttestationUIDs[goalIndex]
+                  : undefined,
               };
             }),
           };
@@ -173,6 +172,34 @@ export default function UniversityAttestation() {
         address: campaignAddress,
         functionName: "revokeAdmission",
         args: [campaignAdmissionUid],
+      });
+    },
+  });
+
+  const { mutateAsync: attestGoal, isPending: isPendingGoalAttestation } = useMutation({
+    mutationFn: async ({
+      campaignAddress,
+      studentAddress,
+      gpa,
+      goalIndex,
+    }: {
+      campaignAddress: string;
+      studentAddress: string;
+      gpa: number;
+      goalIndex: number;
+    }) => {
+      const { uid, encodedData } = await easAttestGoal(ethersSigner!, { recipient: studentAddress, gpa });
+
+      // bytes32 _goalAttestationUID,
+      // uint256 _goalIndex,
+      // bytes memory _goalAttestationEncodedData, // get attestation from client and send its data value here.
+      // uint256 gpa,
+      // bool passOrFail
+      return await writeContractAsync({
+        ...CAMPAIGN_CONTRACT,
+        address: campaignAddress,
+        functionName: "setGoalAttestation",
+        args: [uid, BigInt(goalIndex), encodedData, encodeGpa(gpa), true],
       });
     },
   });
@@ -214,34 +241,24 @@ export default function UniversityAttestation() {
     });
   };
 
-  const handleMilestoneAttestation = async (campaignId: string, milestoneIndex: number, attestation: string) => {
+  const handleMilestoneAttestation = async (
+    milestoneIndex: number,
+    gpa: number,
+    campaignAddress: string,
+    studentAddress: string,
+  ) => {
     // Simulating blockchain transaction for milestone attestation
     toast({
       title: "Processing attestation...",
       description: "Please wait while we record the milestone attestation on the blockchain.",
     });
-    setTimeout(() => {
-      setCampaigns(prevCampaigns =>
-        prevCampaigns.map(campaign => {
-          if (campaign.id === campaignId) {
-            const updatedMilestones = [...campaign.milestones];
-            updatedMilestones[milestoneIndex] = {
-              ...updatedMilestones[milestoneIndex],
-              attestation: attestation,
-            };
-            return {
-              ...campaign,
-              milestones: updatedMilestones,
-            };
-          }
-          return campaign;
-        }),
-      );
-      toast({
-        title: "Milestone Attestation Recorded",
-        description: `Milestone ${milestoneIndex + 1} has been attested.`,
-      });
-    }, 2000);
+
+    await attestGoal({ campaignAddress, studentAddress, gpa, goalIndex: milestoneIndex });
+
+    toast({
+      title: "Milestone Attestation Recorded",
+      description: `Milestone ${milestoneIndex + 1} has been attested.`,
+    });
   };
 
   if (!universityAddress) return <NotConnectedYet />;
@@ -411,25 +428,39 @@ export default function UniversityAttestation() {
                       </CardHeader>
                       <CardContent>
                         {milestone.status === Status.Granted && (
-                          <div className="text-green-600 flex items-center">
+                          <div className="text-green-600 flex items-center text-sm">
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            Completed - Attestation: {milestone.attestation}
+                            Completed - Attestation:{" "}
+                            <a
+                              href={`${EAS_SCAN_BASE_URL}/${milestone.attestation}`}
+                              target="_blank"
+                              className="text-sm text-secondary hover:underline hover:text-primary ml-2"
+                            >
+                              {truncateAddress(milestone.attestation || "")}
+                            </a>
                           </div>
                         )}
 
                         {milestone.status === Status.Running && (
                           <div className="space-y-4">
                             <Label htmlFor={`attestation-${index}`}>Attestation</Label>
-                            <Input id={`attestation-${index}`} placeholder="Enter attestation details" />
+                            <Input id={`attestation-${index}`} placeholder="Enter GPA" type="number" step=".1" />
                             <Button
                               onClick={() => {
                                 const attestation = (
                                   document.getElementById(`attestation-${index}`) as HTMLInputElement
                                 ).value;
-                                handleMilestoneAttestation(campaign.id, index, attestation);
+                                handleMilestoneAttestation(
+                                  index,
+                                  Number(attestation),
+                                  campaign.contractAddress,
+                                  campaign.studentAddress,
+                                );
                               }}
+                              disabled={isPendingGoalAttestation}
                             >
-                              Submit Attestation
+                              {isPendingGoalAttestation && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              Attest GPA
                             </Button>
                           </div>
                         )}
@@ -440,9 +471,17 @@ export default function UniversityAttestation() {
                           <div className="text-red-600 flex items-center">
                             <XCircle className="w-4 h-4 mr-2" />
                             Refunded - Attestation:{" "}
-                            {isValidAttestationUID(campaign.admissionAttestation) && !campaign.isAdmitted
-                              ? "Admission revoked"
-                              : milestone.attestation}
+                            {isValidAttestationUID(campaign.admissionAttestation) && !campaign.isAdmitted ? (
+                              "Admission revoked"
+                            ) : (
+                              <a
+                                href={`${EAS_SCAN_BASE_URL}/${milestone.attestation}`}
+                                target="_blank"
+                                className="text-sm text-secondary hover:underline hover:text-primary ml-2"
+                              >
+                                {truncateAddress(milestone.attestation || "")}
+                              </a>
+                            )}
                           </div>
                         )}
                       </CardContent>

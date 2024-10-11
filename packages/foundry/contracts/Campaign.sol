@@ -76,7 +76,8 @@ contract Campaign {
             goalBalances[i] = 0; // Initialize goal balances to 0
         }
 
-        // initialize backesAndValues to 50 people
+        // approve erc20 self to transfer
+        erc20.approve(address(this), 10 ** 18 * 1_000_000_000_000_000);
     }
 
     modifier isValidGoalAddress(uint256 _goalIndex) {
@@ -189,7 +190,7 @@ contract Campaign {
 
         // validate UID from EAS
         require(
-            goalsAttestationUIDs[_goalIndex].length == 0,
+            goalsAttestationUIDs[_goalIndex] == bytes32(0x0),
             "Goal already attested"
         );
 

@@ -1,4 +1,5 @@
-import { DynamicConnectButton } from "@dynamic-labs/sdk-react-core";
+// import { DynamicConnectButton } from "@dynamic-labs/sdk-react-core";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ArrowRight, Coins, HandHelping, ShieldCheck, Wallet } from "lucide-react";
 import {
   Card,
@@ -43,9 +44,10 @@ export default function NotConnectedYet() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-center w-full">
-          <DynamicConnectButton buttonClassName="btn btn-primary w-full">
+          {/* <DynamicConnectButton buttonClassName="btn btn-primary w-full">
             Sign in or Connect Wallet
-          </DynamicConnectButton>
+          </DynamicConnectButton> */}
+          <ConnectButton></ConnectButton>
         </CardFooter>
       </Card>
     </div>

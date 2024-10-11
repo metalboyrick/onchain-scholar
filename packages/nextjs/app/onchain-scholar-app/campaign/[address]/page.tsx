@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Copy, GraduationCap, XCircle } from "lucide-react";
-import { Hex, fromHex } from "viem";
+import { fromHex } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~~/components/onchain-scholar/ui/card";
@@ -99,9 +99,7 @@ export default function CampaignDetails({ params: { address } }: { params: { add
           expectedFunds: Number(goal.target) / 10 ** 18,
           currentFunds: Number(goalBalances[goalIndex]) / 10 ** 18,
           status: goal.status as Status,
-          attestation: fromHex(goalAttestationUIDs[goalIndex] as Hex, { to: "boolean" })
-            ? goalAttestationUIDs[goalIndex]
-            : null,
+          attestation: isValidAttestationUID(goalAttestationUIDs[goalIndex]) ? goalAttestationUIDs[goalIndex] : null,
         })),
         isAdmitted,
         currentMilestone: goals.findIndex(goal => goal.status === Status.Running),
@@ -421,7 +419,16 @@ export default function CampaignDetails({ params: { address } }: { params: { add
                     </div>
                   </div>
                   {milestone.attestation && (
-                    <p className="mt-2 text-sm text-muted-foreground">Attestation: {milestone.attestation}</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      <span className="font-medium text-green-500">Attestation: </span>
+                      <a
+                        href={`${EAS_SCAN_BASE_URL}/${milestone.attestation}`}
+                        target="_blank"
+                        className="text-sm text-secondary hover:underline hover:text-primary ml-2"
+                      >
+                        {truncateAddress(milestone.attestation || "")}
+                      </a>
+                    </p>
                   )}
                   {userRole === "funder" && index === campaign.currentMilestone && (
                     <div className="mt-4 space-y-2">

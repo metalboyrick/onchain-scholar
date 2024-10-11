@@ -1,6 +1,7 @@
 "use client";
 
-import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+// import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { NextPage } from "next";
 
 const Home: NextPage = () => {
@@ -17,7 +18,7 @@ const Home: NextPage = () => {
             </p>
           </div>
           <div className="space-x-4">
-            <DynamicWidget />
+            <ConnectButton showBalance={false} />
           </div>
         </div>
       </div>

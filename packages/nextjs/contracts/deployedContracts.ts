@@ -191,7 +191,7 @@ const deployedContracts = {
   },
   84532: {
     CampaignFactory: {
-      address: "0x56de7ffe3617f11f89d0495dfd1a385098081fff",
+      address: "0x3258fe864c8c5895140b6559799b54d44d5b5b6f",
       abi: [
         {
           type: "constructor",

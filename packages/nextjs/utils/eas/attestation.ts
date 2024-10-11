@@ -1,5 +1,5 @@
 import { encodeGpa } from "../onchain-scholar/common";
-import { EAS_ADMISSION_SCHEMA_UID, EAS_CONTRACT_ADDRESS } from "./constants";
+import { EAS_ADMISSION_SCHEMA_UID, EAS_CONTRACT_ADDRESS, EAS_GOAL_SCHEMA_UID } from "./constants";
 import { clientToSigner } from "./ethersAdapter";
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { toHex } from "viem";
@@ -49,7 +49,7 @@ export const easAttestGoal = async (
   ]);
 
   const transaction = await eas.attest({
-    schema: EAS_ADMISSION_SCHEMA_UID,
+    schema: EAS_GOAL_SCHEMA_UID,
     data: {
       recipient,
       expirationTime: 0n,
