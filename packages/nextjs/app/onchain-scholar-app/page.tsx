@@ -1,10 +1,16 @@
 "use client";
 
 // import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+import { useRouter } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { NextPage } from "next";
+import { useAccount } from "wagmi";
+import { Button } from "~~/components/onchain-scholar/ui/button";
 
 const Home: NextPage = () => {
+  const { isConnected } = useAccount();
+  const router = useRouter();
+
   return (
     <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
       <div className="container px-4 md:px-6">
@@ -18,7 +24,21 @@ const Home: NextPage = () => {
             </p>
           </div>
           <div className="space-x-4">
-            <ConnectButton showBalance={false} />
+            {isConnected && (
+              <>
+                <Button variant={"default"} onClick={() => router.push(`/onchain-scholar-app/student/create`)}>
+                  Create Campaign
+                </Button>
+                {/* <Button variant={"default"} onClick={() => router.push(`/onchain-scholar-app/student`)}>
+              View Campaigns
+            </Button> */}
+                <Button variant={"outline"} onClick={() => router.push(`/onchain-scholar-app/attestation`)}>
+                  Attest
+                </Button>
+              </>
+            )}
+
+            {!isConnected && <ConnectButton showBalance={false} />}
           </div>
         </div>
       </div>

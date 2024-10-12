@@ -75,18 +75,19 @@ export default function CreateCampaign() {
 
   useEffect(() => {
     if (txnReceipt) {
-      const { topics, data } = txnReceipt.logs[0];
-      const campaignEvent = decodeEventLog({
-        abi: CAMPAIGN_FACTORY_CONTRACT.abi,
-        topics,
-        data,
-      });
+      console.debug({ txnReceipt });
+      // const { topics, data } = txnReceipt.logs[0];
+      // const campaignEvent = decodeEventLog({
+      //   abi: CAMPAIGN_FACTORY_CONTRACT.abi,
+      //   topics,
+      //   data,
+      // });
 
-      toast.success(`Campaign created at ${campaignEvent.args.campaignContract}`);
+      toast.success(`Campaign created!`);
 
-      router.push(`/onchain-scholar-app/campaign/${campaignEvent.args.campaignContract}`);
+      router.push(`/onchain-scholar-app/student`);
     }
-  }, [router, toast, txnReceipt]);
+  }, [router, txnReceipt]);
 
   const isCreatingCampaign = isCreatingCampaignTxn || isFetchingTxnReceipt || isLoadingTxnReceipt;
 
