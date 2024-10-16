@@ -32,7 +32,7 @@ export const Balance = ({ address, className = "", usdMode }: BalanceProps) => {
     address,
   });
 
-  const { data: idrxBalance, isLoading: isIDRXLoading } = useBalance({
+  const { data: idrxBalance, isLoading: isIDRXLoading } = useWatchBalance({
     address,
     token: MOCK_IDRX_CONTRACT.address,
   });
