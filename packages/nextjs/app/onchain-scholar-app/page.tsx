@@ -6,6 +6,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { Button } from "~~/components/onchain-scholar/ui/button";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 
 const Home: NextPage = () => {
   const { isConnected } = useAccount();
@@ -38,7 +39,7 @@ const Home: NextPage = () => {
               </>
             )}
 
-            {!isConnected && <ConnectButton showBalance={false} />}
+            {!isConnected && <RainbowKitCustomConnectButton />}
           </div>
         </div>
       </div>

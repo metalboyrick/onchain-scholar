@@ -1,10 +1,10 @@
 import { BASENAME_L2_RESOLVER_ADDRESS, L2_RESOLVER_ABI } from "./constants";
 import { Address, PublicClient, encodePacked, keccak256, namehash } from "viem";
-import { base, mainnet } from "viem/chains";
+import { base, mainnet, sepolia } from "viem/chains";
 
 export const convertChainIdToCoinType = (chainId: number): string => {
   // L1 resolvers to addr
-  if (chainId === mainnet.id) {
+  if (chainId === sepolia.id) {
     return "addr";
   }
 
@@ -26,13 +26,14 @@ export const convertReverseNodeToBytes = (address: Address, chainId: number) => 
 export async function getBasename(address: Address, publicClient: PublicClient) {
   try {
     const addressReverseNode = convertReverseNodeToBytes(address, base.id);
+    console.log({ addressReverseNode });
     const basename = await publicClient.readContract({
       abi: L2_RESOLVER_ABI,
       address: BASENAME_L2_RESOLVER_ADDRESS,
       functionName: "name",
       args: [addressReverseNode],
     });
-    console.log({ basename });
+
     if (basename) {
       return basename;
     }

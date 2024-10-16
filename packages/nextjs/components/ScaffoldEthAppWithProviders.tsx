@@ -7,6 +7,7 @@ import { RainbowKitProvider, lightTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 import { Toaster } from "react-hot-toast";
+import { baseSepolia } from "viem/chains";
 import { WagmiProvider } from "wagmi";
 import { useInitializeNativeCurrencyPrice } from "~~/hooks/scaffold-eth";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
@@ -21,7 +22,6 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
         <main className="relative flex flex-col flex-1 max-w-[1000px] mx-auto">{children}</main>
         {/* <Footer /> */}
       </div>
-      <IDRXBalanceFloat />
       <Toaster
         toastOptions={{
           // Default options for specific types
@@ -72,10 +72,13 @@ export const ScaffoldEthAppWithProviders = ({ children }: { children: React.Reac
       <QueryClientProvider client={queryClient}>
         <ProgressBar height="3px" color="#2299dd" />
         <RainbowKitProvider
+          initialChain={baseSepolia}
           avatar={BlockieAvatar}
           theme={lightTheme({
             accentColor: "#ffd900",
             accentColorForeground: "black",
+            borderRadius: "small",
+            fontStack: "system",
           })}
         >
           <ScaffoldEthApp>{children}</ScaffoldEthApp>

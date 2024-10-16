@@ -1,10 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import { Address, formatEther } from "viem";
+import { useBalance } from "wagmi";
 import { useDisplayUsdMode } from "~~/hooks/scaffold-eth/useDisplayUsdMode";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { useWatchBalance } from "~~/hooks/scaffold-eth/useWatchBalance";
+import { idrFormat } from "~~/services/onchain-scholar/currency";
 import { useGlobalState } from "~~/services/store/store";
+import { MOCK_IDRX_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 type BalanceProps = {
   address?: Address;
@@ -28,9 +32,28 @@ export const Balance = ({ address, className = "", usdMode }: BalanceProps) => {
     address,
   });
 
+  const { data: idrxBalance, isLoading: isIDRXLoading } = useBalance({
+    address,
+    token: MOCK_IDRX_CONTRACT.address,
+  });
+
   const { displayUsdMode, toggleDisplayUsdMode } = useDisplayUsdMode({ defaultUsdMode: usdMode });
 
-  if (!address || isLoading || balance === null || (isNativeCurrencyPriceFetching && nativeCurrencyPrice === 0)) {
+  const formattedBalance = balance ? Number(formatEther(balance.value)) : 0;
+
+  const formattedIDRXBalance = useMemo(() => {
+    const wholeUnits = idrxBalance?.formatted.split(".")[0];
+    const fractionalUnits = idrxBalance?.formatted.split(".")[1] || "0000";
+    return idrFormat.format(parseFloat(`${wholeUnits}.${fractionalUnits.slice(0, 4)}`)).replace("Rp ", "");
+  }, [idrxBalance]);
+
+  if (
+    !address ||
+    isIDRXLoading ||
+    isLoading ||
+    balance === null ||
+    (isNativeCurrencyPriceFetching && nativeCurrencyPrice === 0)
+  ) {
     return (
       <div className="animate-pulse flex space-x-4">
         <div className="rounded-md bg-slate-300 h-6 w-6"></div>
@@ -49,8 +72,6 @@ export const Balance = ({ address, className = "", usdMode }: BalanceProps) => {
     );
   }
 
-  const formattedBalance = balance ? Number(formatEther(balance.value)) : 0;
-
   return (
     <button
       className={`btn btn-sm btn-ghost flex flex-col font-normal items-center hover:bg-transparent ${className}`}
@@ -59,8 +80,8 @@ export const Balance = ({ address, className = "", usdMode }: BalanceProps) => {
       <div className="w-full flex items-center justify-center">
         {displayUsdMode ? (
           <>
-            <span className="text-[0.8em] font-bold mr-1">$</span>
-            <span>{(formattedBalance * nativeCurrencyPrice).toFixed(2)}</span>
+            <span className="text-[0.8em] font-bold mr-1">IDRX</span>
+            <span>{formattedIDRXBalance}</span>
           </>
         ) : (
           <>

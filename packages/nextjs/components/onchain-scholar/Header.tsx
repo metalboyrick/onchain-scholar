@@ -3,8 +3,8 @@
 // import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { RainbowKitCustomConnectButton } from "../scaffold-eth";
 import { Button } from "./ui/button";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 
 export default function Header() {
@@ -19,7 +19,7 @@ export default function Header() {
       >
         <Image src="/favicon.png" alt="" width={28} height={28} /> <span>Onchain Scholar</span>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         {isConnected && (
           <>
             <Button variant={"default"} onClick={() => router.push(`/onchain-scholar-app/student/create`)}>
@@ -31,7 +31,7 @@ export default function Header() {
           </>
         )}
 
-        <ConnectButton showBalance={false} />
+        <RainbowKitCustomConnectButton />
       </div>
     </nav>
   );

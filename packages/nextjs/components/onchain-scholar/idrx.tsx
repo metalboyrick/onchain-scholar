@@ -5,7 +5,7 @@ import { useAccount, useBalance, useToken } from "wagmi";
 import { MOCK_IDRX_CONTRACT } from "~~/utils/onchain-scholar/constants";
 
 // IDRX token contract address (replace with actual address)
-const IDRX_ADDRESS = MOCK_IDRX_CONTRACT.address;
+export const IDRX_ADDRESS = MOCK_IDRX_CONTRACT.address;
 
 export default function IDRXBalanceFloat() {
   const { address, isConnected } = useAccount();
